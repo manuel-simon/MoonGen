@@ -1,18 +1,17 @@
-<!DOCTYPE html>
-
-<html lang="pt-BR">
-    <head>
-        <meta charset="UTF-8">
-        <title>Example</title>
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link href="style.css" media="all" rel="stylesheet">
-    </head>
-    <body>
-        <form method="POST">
-            <input type="text" name="name">
-            <input type="text" name="age">
-            <input type="submit" value="send">
-        </form>
-    </body>
+<html>
+  <head>
+    <title>Angular 2 Quickstart</title>
+    <script src="/quickstart/dist/es6-shim.js"></script>
+  </head>
+  <body>
+    <my-app></my-app>
+    <script>
+      System.paths = {
+        'angular2/*':'/quickstart/angular2/*.js',
+        'rtts_assert/*': '/quickstart/rtts_assert/*.js',
+        'app': 'app.es6'
+      };
+      System.import('app');
+    </script>
+  </body>
 </html>
