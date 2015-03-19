@@ -1,4 +1,4 @@
-angular.module('example', ['n3-line-chart'])
+angular.module('example', ['n3-line-chart, http'])
 .controller('ExampleCtrl', function($scope) {
             $scope.data = [
                            {x: 0, value: 4, otherValue: 14},
@@ -10,8 +10,14 @@ angular.module('example', ['n3-line-chart'])
                            ];
             
             $scope.addData = function() {
-                $scope.data.push({ x: $scope.data.length, value: 20, otherValue: 10});
-                $scope.options.axes.x.max = $scope.data.length;
+                $http.get('/csv/test')
+		     .success(
+			function(data, status, header, config){
+				alert(data);	
+		        }
+	              );
+		//$scope.data.push({ x: $scope.data.length, value: 20, otherValue: 10});
+                //$scope.options.axes.x.max = $scope.data.length;
             };
             
             $scope.options = {
