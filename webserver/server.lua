@@ -2,11 +2,9 @@ local turbo = require "turbo"
 
 local port = 80
 
-local testtable = {value=4, othervalue=20}
-
 local CSVHandler = class("CSVHandler", turbo.web.RequestHandler)
 function CSVHandler:get()
-	self:write(testtable)
+	self:write({x=0, value=math.random(200), othervalue=20})
 end
 
 local app = turbo.web.Application:new({
