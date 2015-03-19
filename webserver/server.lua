@@ -2,9 +2,18 @@ local turbo = require "turbo"
 
 local port = 80
 
+local testtable = {value=4, othervalue=20}
+
+local CSVHandler = class("CSVHandler", turbo.web.RequestHandler)
+function CSVHandler:get()
+	self:write(testtable)
+end
+
 local app = turbo.web.Application:new({
 	-- Serve single index.html file on root requests.
 	{"^/$", turbo.web.StaticFileHandler, "./index.html"},
+	-- Server csv data
+	{"^/csv/(.*)$", CSVHandler},
 	-- Serve contents of directory.
 	{"^/(.*)$", turbo.web.StaticFileHandler, "./"}
 })
