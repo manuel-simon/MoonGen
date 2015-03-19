@@ -1,5 +1,5 @@
-angular.module('example', ['n3-line-chart, http'])
-.controller('ExampleCtrl', function($scope) {
+angular.module('example', ['n3-line-chart'])
+.controller('ExampleCtrl', function($scope, $http) {
             $scope.data = [
                            {x: 0, value: 4, otherValue: 14},
                            {x: 1, value: 8, otherValue: 1},
