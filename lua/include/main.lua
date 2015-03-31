@@ -2,9 +2,12 @@
 require "utils"
 require "packet"
 
-local dpdk	= require "dpdk"
-local dev	= require "device"
-local stp	= require "StackTracePlus"
+local dpdk		= require "dpdk"
+local dpdkc		= require "dpdkc"
+local dev		= require "device"
+local stp		= require "StackTracePlus"
+local ffi		= require "ffi"
+local serpent	= require "Serpent"
 
 -- TODO: add command line switches for this and other luajit-debugging features
 --require("jit.v").on()
@@ -60,30 +63,23 @@ local function master(_, file, ...)
 	-- it is up to the user program to wait for slaves to finish, e.g. by calling dpdk.waitForSlaves()
 end
 
-local function slave(file, func, ...)
+local function slave(taskId, args)
+	args = loadstring(args)()
+	file, func = unpack(args)
+	if func == "master" then
+		print("[WARNING] Calling master as slave. This is probably a bug.")
+	end
 	--require("jit.p").start("l")
 	--require("jit.dump").on()
 	MOONGEN_TASK_NAME = func
+	MOONGEN_TASK_ID = taskId
 	run(file)
 	-- decode args
-	local args = { ... }
-	-- TODO: ugly work-around until someone implements proper serialization
-	for i, v in ipairs(args) do
-		if type(v) == "table" then
-			local obj = {}
-			for v in v[1]:gmatch("([^,]+)") do
-				obj[#obj + 1] = v
-			end
-			if obj[1] == "device" then
-				args[i] = dev.get(tonumber(obj[2]))
-			elseif obj[1] == "rxQueue" then
-				args[i] = dev.get(tonumber(obj[2])):getRxQueue(tonumber(obj[3]))
-			elseif obj[1] == "txQueue" then
-				args[i] = dev.get(tonumber(obj[2])):getTxQueue(tonumber(obj[3]))
-			end
-		end
-	end
-	xpcall(_G[func], getStackTrace, unpack(args))
+	local results = { select(2, xpcall(_G[func], getStackTrace, select(3, unpackAll(args)))) }
+	local vals = serpent.dump(results)
+	local buf = ffi.new("char[?]", #vals + 1)
+	ffi.copy(buf, vals)
+	dpdkc.store_result(taskId, buf)
 	--require("jit.p").stop()
 end
 

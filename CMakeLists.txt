@@ -14,6 +14,8 @@ SET(FILES
 	src/util.c
 	src/lifecycle.c
 	src/timestamping.c
+	src/task-results.cpp
+	src/pipe.cpp
 )
 
 SET(DPDK_LIBS
@@ -37,6 +39,7 @@ INCLUDE_DIRECTORIES(
 	 ${CMAKE_CURRENT_SOURCE_DIR}/deps/dpdk/x86_64-native-linuxapp-gcc/include
 	 ${CMAKE_CURRENT_SOURCE_DIR}/deps/dpdk/lib/librte_pmd_ixgbe/ixgbe
 	 ${CMAKE_CURRENT_SOURCE_DIR}/deps/luajit/src
+	 ${CMAKE_CURRENT_SOURCE_DIR}/lib
 )
 
 LINK_DIRECTORIES(

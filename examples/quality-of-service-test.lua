@@ -4,6 +4,7 @@ local memory	= require "memory"
 local device	= require "device"
 local ts		= require "timestamping"
 local filter	= require "filter"
+local stats		= require "stats"
 local hist		= require "histogram"
 
 local PKT_SIZE = 124
@@ -17,6 +18,9 @@ function master(txPort, rxPort, rate, bgRate)
 	-- 3 tx queues: traffic, background traffic, and timestamped packets
 	-- 2 rx queues: traffic and timestamped packets
 	local txDev, rxDev
+	-- these two cases could actually be merged as re-configurations of ports are ignored
+	-- the dual-port case could just config the 'first' device with 2/3 queues
+	-- however, this example scripts shows the explicit configuration instead of implicit magic
 	if txPort == rxPort then
 		-- sending and receiving from the same port
 		txDev = device.config(txPort, 2, 3)
@@ -26,7 +30,7 @@ function master(txPort, rxPort, rate, bgRate)
 		txDev = device.config(txPort, 1, 3)
 		rxDev = device.config(rxPort, 2)
 	end
-	-- wait until the link is up
+	-- wait until the links are up
 	device.waitForLinks()
 	-- setup rate limiters for CBR traffic
 	-- see l2-poisson.lua for an example with different traffic patterns
@@ -60,11 +64,8 @@ function loadSlave(queue, port, rate)
 			-- payload will be initialized to 0x00 as new memory pools are initially empty
 		}
 	end)
-	local lastPrint = dpdk.getTime()
-	local totalSent = 0
-	local lastTotal = 0
-	local lastSent = 0
-	local totalReceived = 0
+	-- TODO: fix per-queue stats counters to use the statistics registers here
+	local txCtr = stats:newManualTxCounter("Port " .. port, "plain")
 	local baseIP = parseIPAddress("10.0.0.1")
 	-- a buf array is essentially a very thing wrapper around a rte_mbuf*[], i.e. an array of pointers to packet buffers
 	local bufs = mem:bufArray()
@@ -81,19 +82,9 @@ function loadSlave(queue, port, rate)
 		end
 		-- send packets
 		bufs:offloadUdpChecksums()
-		totalSent = totalSent + queue:send(bufs)
-		-- print statistics
-		-- TODO: this should be in a utility function
-		local time = dpdk.getTime()
-		if time - lastPrint > 1 then
-			--local rx = dev:getRxStats(port)
-			local mpps = (totalSent - lastTotal) / (time - lastPrint) / 10^6
-			printf("%s Sent %d packets, current rate %.2f Mpps, %.2f MBit/s, %.2f MBit/s wire rate", queue, totalSent, mpps, mpps * (PKT_SIZE + 4) * 8, mpps * (PKT_SIZE + 24) * 8)
-			lastTotal = totalSent
-			lastPrint = time
-		end
+		txCtr:updateWithSize(queue:send(bufs), PKT_SIZE)
 	end
-	printf("%s Sent %d packets", queue, totalSent)
+	txCtr:finalize()
 end
 
 function counterSlave(queue)
@@ -101,32 +92,31 @@ function counterSlave(queue)
 	-- an alternative would be using flow director to filter packets by port and use the queue statistics
 	-- however, the current implementation is limited to filtering timestamp packets
 	-- (changing this wouldn't be too complicated, have a look at filter.lua if you want to implement this)
+	-- however, queue statistics are also not yet implemented and the DPDK abstraction is somewhat annoying
 	local bufs = memory.bufArray()
-	local stats = {}
-	local lastPrint = 0
-	local lastStats = {}
-	while dpdk.running() do
+	local ctrs = {}
+	while dpdk.running(100) do
 		local rx = queue:recv(bufs)
 		for i = 1, rx do
 			local buf = bufs[i]
 			local pkt = buf:getUdpPacket()
 			local port = pkt.udp:getDstPort()
-			stats[port] = (stats[port] or 0) + 1
+			local ctr = ctrs[port]
+			if not ctr then
+				ctr = stats:newPktRxCounter("Port " .. port, "plain")
+				ctrs[port] = ctr
+			end
+			ctr:countPacket(buf)
+		end
+		-- update() on rxPktCounters must be called to print statistics periodically
+		-- this is not done in countPacket() for performance reasons (needs to check timestamps)
+		for k, v in pairs(ctrs) do
+			v:update()
 		end
 		bufs:freeAll()
-		local time = dpdk.getTime()
-		if time - lastPrint > 1 then
-			for k, v in pairs(stats) do
-				local last = lastStats[k] or 0
-				local mpps = (v - last) / (time - lastPrint) / 10^6
-				printf("%s Port %d: Received %d packets, current rate %.2f Mpps, %.2f MBit/s, %.2f MBit/s wire rate", queue, k, v, mpps, mpps * (PKT_SIZE + 4) * 8, mpps * (PKT_SIZE + 24) * 8)
-				lastStats[k] = v
-			end
-			lastPrint = time
-		end
 	end
-	for k, v in pairs(stats) do
-		printf("%s Port %d: Received %d packets", queue, k, v)
+	for k, v in pairs(ctrs) do
+		v:finalize()
 	end
 	-- TODO: check the queue's overflow counter to detect lost packets
 end

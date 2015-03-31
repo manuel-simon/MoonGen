@@ -27,6 +27,10 @@ function dev:__tostring()
 	return ("[Device: id=%d]"):format(self.id)
 end
 
+function dev:__serialize()
+	return ('local dev = require "device" return dev.get(%d)'):format(self.id), true
+end
+
 local txQueue = {}
 txQueue.__index = txQueue
 txQueue.__type = "txQueue"
@@ -35,12 +39,20 @@ function txQueue:__tostring()
 	return ("[TxQueue: id=%d, qid=%d]"):format(self.id, self.qid)
 end
 
+function txQueue:__serialize()
+	return ('local dev = require "device" return dev.get(%d):getTxQueue(%d)'):format(self.id, self.qid), true
+end
+
 local rxQueue = {}
 rxQueue.__index = rxQueue
 rxQueue.__type = "rxQueue"
 
 function rxQueue:__tostring()
 	return ("[RxQueue: id=%d, qid=%d]"):format(self.id, self.qid)
+end
+
+function rxQueue:__serialize()
+	return ('local dev = require "device" return dev.get(%d):getRxQueue(%d)'):format(self.id, self.qid), true
 end
 
 local devices = {}
@@ -124,14 +136,16 @@ function mod.waitForLinks(...)
 		ports = { ... }
 	end
 	print("Waiting for ports to come up...")
+	local portsUp = 0
 	local portsSeen = {} -- do not wait twice if a port occurs more than once (e.g. if rx == tx)
 	for i, port in ipairs(ports) do
 		local port = mod.get(port)
 		if not portsSeen[port] then
 			portsSeen[port] = true
-			port:wait()
+			portsUp = portsUp + (port:wait() and 1 or 0)
 		end
 	end
+	printf("%d ports are up.", portsUp)
 end
 
 
@@ -141,6 +155,7 @@ function dev:wait()
 	local link = self:getLinkStatus()
 	self.speed = link.speed
 	printf("Port %d (%s) is %s: %s%s MBit/s", self.id, self:getMacString(), link.status and "up" or "DOWN", link.duplexAutoneg and "" or link.duplex and "full-duplex " or "half-duplex ", link.speed)
+	return link.status
 end
 
 function dev:getLinkStatus()
@@ -193,11 +208,27 @@ function mod.getDevices()
 	return result
 end
 
-local TPR = 0x000040D0
+-- FIXME: only tested on X540, 82599 and 82580 chips
+-- these functions must be wrapped in a device-specific way
+-- rx stats
+local GPRC	= 0x00004074
+local GORCL = 0x00004088
+local GORCH	= 0x0000408C
+
+-- tx stats
+local GPTC	= 0x00004080
+local GOTCL	= 0x00004090
+local GOTCH	= 0x00004094
 
 --- get the number of packets received since the last call to this function
 function dev:getRxStats()
-	return dpdkc.read_reg32(self.id, TPR)
+	return dpdkc.read_reg32(self.id, GPRC), dpdkc.read_reg32(self.id, GORCL) + dpdkc.read_reg32(self.id, GORCH) * 2^32
+end
+
+function dev:getTxStats()
+	local badPkts = tonumber(dpdkc.get_bad_pkts_sent(self.id))
+	local badBytes = tonumber(dpdkc.get_bad_bytes_sent(self.id))
+	return dpdkc.read_reg32(self.id, GPTC) - badPkts, dpdkc.read_reg32(self.id, GOTCL) + dpdkc.read_reg32(self.id, GOTCH) * 2^32 - badBytes
 end
 
 
@@ -209,14 +240,6 @@ function dev:getRxStatsAll()
 end
 
 local RTTDQSEL = 0x00004904
-
---- See txQueue:setTxRate() for details.
-function txQueue:setWireRate(rate, packetSize)
-	packetSize = packetSize or 64
-	-- the NIC doesn't take the preamble and IFG into account, so adjust as needed
-	-- the rate limit will then only be correct for this packet size, tough
-	self:setTxRateRaw(packetSize * rate / ((packetSize + 20)))
-end
 
 --- Set the tx rate of a queue in MBit/s.
 -- This sets the payload rate, not to the actual wire rate, i.e. preamble, SFD, and IFG are ignored.
@@ -235,6 +258,9 @@ function txQueue:setRate(rate)
 		print("WARNING: link down, assuming 10 GbE connection")
 		speed = 10000
 	end
+	if rate <= 0 then
+		rate = speed
+	end
 	self.rate = math.min(rate, speed)
 	self.speed = speed
 	local link = self.dev:getLinkStatus()
@@ -244,7 +270,7 @@ function txQueue:setRate(rate)
 	-- ethernet frame is 64 byte when it is actually 84 byte (8 byte preamble/SFD, 12 byte IFG)
 	-- TODO: software fallback for bugged rates and unsupported NICs
 	if rate >= (64 * 64) / (84 * 84) and rate < 1 then
-		print("WARNING: rates with a wire rate >= 64/84% do not work properly with small packets due to a hardware bug, see documentation for details")
+		print("WARNING: rates with a payload rate >= 64/84% do not work properly with small packets due to a hardware bug, see documentation for details")
 	end
 	if rate <= 0 then
 		error("rate must be > 0")
@@ -254,6 +280,11 @@ function txQueue:setRate(rate)
 	else
 		self:setTxRateRaw(1 / rate)
 	end
+end
+
+function txQueue:setRateMpps(rate, pktSize)
+	pktSize = pktSize or 60
+	self:setRate(rate * (pktSize + 4) * 8)
 end
 
 local RF_X540_82599 = 0x00004984
@@ -328,13 +359,17 @@ end
 --- Receive packets from a rx queue with a timeout.
 function rxQueue:tryRecv(bufArray, maxWait)
 	maxWait = maxWait or math.huge
-	while maxWait > 0 do
+	while maxWait >= 0 do
 		local rx = dpdkc.rte_eth_rx_burst_export(self.id, self.qid, bufArray.array, bufArray.size)
 		if rx > 0 then
 			return rx
 		end
-		dpdk.sleepMicros(1)
 		maxWait = maxWait - 1
+		-- don't sleep pointlessly
+		if maxWait < 0 then
+			break
+		end
+		dpdk.sleepMicros(1)
 	end
 	return 0
 end

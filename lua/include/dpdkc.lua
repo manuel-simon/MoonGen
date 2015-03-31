@@ -136,6 +136,7 @@ ffi.cdef[[
 	// cpu core management
 	int rte_eal_get_lcore_state(int core);
 	enum rte_lcore_state_t rte_eal_get_lcore_state(unsigned int slave_id);
+	int rte_eal_wait_lcore(int core);
 	uint32_t get_current_core();
 	uint32_t get_current_socket();
 
@@ -170,6 +171,8 @@ ffi.cdef[[
 	void send_all_packets(uint8_t port_id, uint16_t queue_id, struct rte_mbuf** pkts, uint16_t num_pkts);
 	void send_all_packets_with_delay_invalid_size(uint8_t port_id, uint16_t queue_id, struct rte_mbuf** load_pkts, uint16_t num_pkts, struct mempool* pool);
 	void send_all_packets_with_delay_bad_crc(uint8_t port_id, uint16_t queue_id, struct rte_mbuf** load_pkts, uint16_t num_pkts, struct mempool* pool);
+	uint64_t get_bad_pkts_sent(uint8_t port_id);
+	uint64_t get_bad_bytes_sent(uint8_t port_id);
 
 	// fdir filter
 	int rte_eth_dev_fdir_add_perfect_filter(uint8_t port_id, struct rte_fdir_filter* fdir_filter, uint16_t soft_id, uint8_t rx_queue, uint8_t drop);	

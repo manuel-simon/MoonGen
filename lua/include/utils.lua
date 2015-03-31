@@ -34,13 +34,36 @@ function tonumberall(...)
 	return mapVarArg(tonumber, ...)
 end
 
+function toCsv(...)
+	local vals = { tostringall(...) }
+	for i, v in ipairs(vals) do
+		if v:find("\"") then
+			v = v:gsub("\"", "\"\"")
+		end
+		-- fields just containing \n or \r but not \n\r are not required to be quoted by RFC 4180...
+		-- but I doubt that most parser could handle this ;)
+		if v:find("\n") or v:find("\r") or v:find("\"") or v:find(",") then
+			vals[i] = ("\"%s\""):format(v)
+		end
+	end
+	return table.concat(vals, ",")
+end
+
+function printCsv(...)
+	return print(toCsv(...))
+end
+
 --- Get the time to wait (in byte-times) for the next packet based on a poisson process.
 -- @param average the average wait time between two packets
 -- @returns the number of byte-times to wait to achieve the given average wait-time
 function poissonDelay(average)
 	return floor(-log(1 - random()) / (1 / average) + 0.5)
- end
+end
 
+function rateToByteDelay(rate, size)
+	size = size or 60
+	return 10^10 / 8 / (rate * 10^6) - size - 24
+end
 
 function bswap16(n)
 	return bor(rshift(n, 8), lshift(band(n, 0xFF), 8))
@@ -243,5 +266,32 @@ function mergeTables(...)
 		end
 	end
 	return table
+end
+
+--- Return all integerss in the range [start, max].
+-- @param max upper bound
+-- @param start lower bound, default = 1
+function range(max, start, ...)
+	start = start or 1
+	if start > max then
+		return ...
+	end
+	return start, range(max, start + 1, select(2, ...))
+end
+
+
+local unpackers = setmetatable({}, { __index = function(self, n)
+	local func = loadstring(([[
+		return function(tbl)
+			return ]] .. ("tbl[%d], "):rep(n):sub(0, -3) .. [[
+		end
+	]]):format(range(n)))()
+	rawset(self, n, func)
+	return func
+end })
+
+--- unpack() with support for arrays with 'holes'.
+function unpackAll(tbl)
+	return unpackers[table.maxn(tbl)](tbl)
 end
 

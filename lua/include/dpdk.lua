@@ -2,14 +2,16 @@
 local mod = {}
 local ffi		= require "ffi"
 local dpdkc		= require "dpdkc"
+local serpent	= require "Serpent"
 
 -- DPDK constants (lib/librte_mbuf/rte_mbuf.h)
 -- TODO: import more constants here
 mod.PKT_RX_IEEE1588_TMST	= 0x0400
 mod.PKT_TX_IPV4_CSUM		= 0x1000
-mod.PKT_TX_TCP_CKSUM     	= 0x2000 -- < TCP cksum of TX pkt. computed by NIC.
+mod.PKT_TX_TCP_CKSUM     	= 0x2000
 mod.PKT_TX_UDP_CKSUM		= 0x6000
 mod.PKT_TX_NO_CRC_CSUM		= 0x0001
+mod.PKT_TX_IEEE1588_TMST	= 0x8000
 
 local function fileExists(f)
 	local file = io.open(f, "r")
@@ -97,67 +99,91 @@ function mod.init()
 end
 
 ffi.cdef[[
-	struct lua_core_arg {
-		enum { ARG_TYPE_STRING, ARG_TYPE_NUMBER, ARG_TYPE_BOOLEAN, ARG_TYPE_POINTER, ARG_TYPE_NIL, ARG_TYPE_OBJECT } arg_type;
-		union {
-			const char* str;
-			double number;
-			void* ptr;
-			bool boolean;
-		} arg;
-	};
-	void launch_lua_core(int core, int argc, struct lua_core_arg* argv[]);
+	void launch_lua_core(int core, uint64_t task_id, char* args);
+	
+	void free(void* ptr);
+	uint64_t generate_task_id();
+	void store_result(uint64_t task_id, char* result);
+	char* get_result(uint64_t task_id);
 ]]
+
+local function checkCore()
+	if MOONGEN_TASK_NAME ~= "master" then
+		error("[ERROR] This function is only available on the master task.", 2)
+	end
+end
+
+local task = {}
+task.__index = task
+
+local tasks = {}
+
+function task:new(core)
+	checkCore()
+	local obj = setmetatable({
+		-- double instead of uint64_t is easier here and okay (unless you want to start more than 2^53 tasks)
+		id = tonumber(ffi.C.generate_task_id()),
+		core = core
+	}, task)
+	tasks[core] = obj
+	return obj
+end
+
+--- Wait for a task and return any arguments returned by the task
+function task:wait()
+	checkCore()
+	while true do
+		if dpdkc.rte_eal_get_lcore_state(self.core) ~= dpdkc.RUNNING then
+			-- task is finished
+			local result = dpdkc.get_result(self.id)
+			if result == nil then
+				-- thread crashed :(
+				return
+			end
+			local resultString = ffi.string(result)
+			dpdkc.free(result)
+			return unpackAll(loadstring(resultString)())
+		end
+		ffi.C.usleep(100)
+	end
+end
+
+function task:isRunning()
+	checkCore()
+	if not tasks[self.core] or task[self.core].id ~= self.id then
+		-- something else or nothing is running on this core
+		return false
+	end
+	-- this task is still on this cora, but is it still running?
+	return dpdkc.rte_eal_get_lcore_state(core) == dpdkc.RUNNING
+end
 
 
 --- Launch a LuaJIT VM on a core with the given arguments.
 --- TODO: use proper serialization and only pass strings
 function mod.launchLuaOnCore(core, ...)
-	local args = { ... }
-	--- the (de-)serialization is ugly and needs a rewrite with a proper (de-)serialization library (Serpent?)
-	local argsArray = ffi.new("struct lua_core_arg*[?]", #args)
-	for i, v in ipairs(args) do
-		argsArray[i - 1] = ffi.new("struct lua_core_arg")
-		if type(v) == "string" then
-			argsArray[i - 1].arg_type = ffi.C.ARG_TYPE_STRING
-			argsArray[i - 1].arg.str = ffi.new("const char*", v)
-		elseif type(v) == "number" then
-			argsArray[i - 1].arg_type = ffi.C.ARG_TYPE_NUMBER
-			argsArray[i - 1].arg.number = v
-		elseif type(v) == "boolean" then
-			argsArray[i - 1].arg_type = ffi.C.ARG_TYPE_BOOLEAN
-			argsArray[i - 1].arg.boolean = v
-		elseif type(v) == "cdata" or type(v) == "userdata" then
-			argsArray[i - 1].arg_type = ffi.C.ARG_TYPE_POINTER
-			argsArray[i - 1].arg.ptr = v
-		else
-			local objectOk = false
-			if type(v) == "table" and getmetatable(v) then
-				local t = getmetatable(v).__type
-				if t == "device" or t == "rxQueue" or t == "txQueue" then
-					-- TODO: this is obviously just a temporary work-around
-					argsArray[i - 1].arg_type = ffi.C.ARG_TYPE_OBJECT
-					argsArray[i - 1].arg.str = ffi.new("const char*", t .. "," ..
-						(t == "device" and v.id or (v.id .. "," .. v.qid)))
-					objectOk = true
-				end
-			end
-			if not objectOk then
-				error(("arguments of type %s are not supported for slave cores"):format(type(v)))
-			end
-		end
-	end
-	dpdkc.launch_lua_core(core, #args, argsArray)
+	checkCore()
+	local args = serpent.dump({ mod.userScript, ... })
+	local task = task:new(core)
+	local buf = ffi.new("char[?]", #args + 1)
+	ffi.copy(buf, args)
+	dpdkc.launch_lua_core(core, task.id, buf)
+	return task
 end
 
 --- launches the lua file on the first free core
 function mod.launchLua(...)
-	-- TODO: use dpdk iterator functions
+	checkCore() 
 	for i = 2, #cores do -- skip master
 		local core = cores[i]
-		if dpdkc.rte_eal_get_lcore_state(core) == dpdkc.WAIT then -- core is in WAIT state
-			mod.launchLuaOnCore(core, mod.userScript, ...)
-			return
+		local status = dpdkc.rte_eal_get_lcore_state(core)
+		if status == dpdkc.FINISHED then
+			dpdkc.rte_eal_wait_lcore(core)
+			-- should be guaranteed to be in WAIT state now according to DPDK documentation
+			status = dpdkc.rte_eal_get_lcore_state(core)
+		end
+		if status == dpdkc.WAIT then -- core is in WAIT state
+			return mod.launchLuaOnCore(core, ...)
 		end
 	end
 	error("not enough cores to start this lua task")
@@ -209,7 +235,8 @@ function mod.setRuntime(time)
 	dpdkc.set_runtime(time * 1000)
 end
 
---- returns false once the app receives SIGTERM or SIGINT, the time set via setRuntime expires, or when a thread calls dpdk.stop()
+--- Returns false once the app receives SIGTERM or SIGINT, the time set via setRuntime expires, or when a thread calls dpdk.stop().
+-- @param extraTime additional time in milliseconds before false will be returned
 function mod.running(extraTime)
 	return dpdkc.is_running(extraTime or 0) == 1 -- luajit-2.0.3 does not like bool return types (TRACE NYI: unsupported C function type)
 end
@@ -230,6 +257,16 @@ end
 --- is somewhat more accurate than relying on the OS.
 function mod.sleepMicros(t)
 	dpdkc.rte_delay_us_export(t)
+end
+
+--- Sleep by t milliseconds by calling usleep().
+function mod.sleepMillisIdle(t)
+	ffi.C.usleep(t * 1000)
+end
+
+--- Sleep by t microseconds by calling usleep().
+function mod.sleepMicrosIdle(t)
+	ffi.C.usleep(t)
 end
 
 --- Get the core and socket id for the current thread
