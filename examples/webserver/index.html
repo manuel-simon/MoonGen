@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html lang="en" ng-app="example">
+<head>
+  <title>n3-charts</title>
+</head>
+
+<body>
+    <div ng-controller='ExampleCtrl'>
+        <div style="width:600px;">
+            <linechart data="data" options="options"></linechart>
+        </div>
+        <button ng-click="addData()">Add Data</button>
+    </div>
+  <script src="./lib/moment.min.js"></script>
+  <script src="./lib/angular.min.js"></script>
+  <script src="./lib/d3.min.js"></script>
+  <script src="./lib/line-chart.js"></script>
+  <script src="./app.js"></script>
+  <script type="text/javascript">
+      //setTimeout(function(){
+      //           window.location.reload(1);
+      //           }, 5000);
+  </script>
+
+  
+</body>
+</html>
