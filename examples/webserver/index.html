@@ -6,25 +6,29 @@
 	</head>
 
 	<body>
-		<h1>MoonGen<h1>
+        <div id="center">
+            <div id="header"><h1>MoonGen</h1></div>
+		
 
 		<div ng-controller='ExampleCtrl'>
-			<div style="width:600px;">
+			<div id="chart">
+                <h3>Average Latency</h3>
 				<linechart data="data" options="options"></linechart>
+                <button ng-click="addData()">Add Data</button>
 			</div>
-			<button ng-click="addData()">Add Data</button>
+
+            <div id="sidebar">
+                <h3>Calculation of cable lenth</h3>
+                    <p>Average latency: {{latestLatency}}&mu;s</p>
+            </div>
 		</div>
+
 		<script src="./lib/moment.min.js"></script>
 		<script src="./lib/angular.min.js"></script>
 		<script src="./lib/d3.min.js"></script>
 		<script src="./lib/line-chart.js"></script>
 		<script src="./app.js"></script>
-		<script type="text/javascript">
-			//setTimeout(function(){
-			//           window.location.reload(1);
-			//           }, 5000);
-		</script>
 
-
+        </div>
 	</body>
 </html>

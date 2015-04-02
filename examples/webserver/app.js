@@ -11,19 +11,20 @@ angular.module('example', ['n3-line-chart'])
 	];
 
 	$scope.addData = function() {
-		$http.get('/csv/test', {cache: false})
-			.success(
-					function(data, status, header, config){
-						if (data) {
-							console.log(data);
-							data.x=$scope.data.length;
-							$scope.data.push(data);
-							$scope.options.axes.x.max = $scope.data.lenth;
-						}
-					}
-				);
-		//$scope.data.push({ x: $scope.data.length, value: 20, otherValue: 10});
-		//$scope.options.axes.x.max = $scope.data.length;
+		//$http.get('/csv/test', {cache: false})
+		//	.success(
+		//			function(data, status, header, config){
+		//				if (data) {
+		//					console.log(data);
+		//					data.x=$scope.data.length;
+		//					$scope.data.push(data);
+		//					$scope.options.axes.x.max = $scope.data.lenth;
+		//				}
+		//			}
+		//		);
+		$scope.data.push({ x: $scope.data.length, value: 20, otherValue: 10});
+        $scope.latestLatency = $scope.latestLatency + 1;
+        //$scope.options.axes.x.max = $scope.data.length;
 	};
 	setInterval($scope.addData, 1000);
 
@@ -44,4 +45,6 @@ angular.module('example', ['n3-line-chart'])
 		drawDots: true,
 		columnsHGap: 5
 	};
+            
+    $scope.latestLatency = 0;
 });
