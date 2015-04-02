@@ -78,20 +78,21 @@ ntoh = hton
 
 local ffi = require "ffi"
 
-ffi.cdef [[
-	struct timeval {
-		long tv_sec;
-	        long tv_usec;
-	};
-	int gettimeofday(struct timeval* tv, void* tz);
-]]
+--ffi.cdef [[
+--	struct timeval {
+--		long tv_sec;
+--	        long tv_usec;
+--	};
+--	int gettimeofday(struct timeval* tv, void* tz);
+--]]
 
 do
-	local tv = ffi.new("struct timeval")
+	--local tv = ffi.new("struct timeval")
 	
 	function time()
-		ffi.C.gettimeofday(tv, nil)
-		return tonumber(tv.tv_sec) + tonumber(tv.tv_usec) / 10^6
+		--ffi.C.gettimeofday(tv, nil)
+		--return tonumber(tv.tv_sec) + tonumber(tv.tv_usec) / 10^6
+		return os.time() * 10^6
 	end
 end
 
@@ -108,7 +109,7 @@ function checksum(data, len)
 	return band(bnot(cs), 0xFFFF)
 end
 
---- Parse a string to a MAC address
+--- Parse a string to a MAC addressif
 -- @param mac address in string format
 -- @return address in mac_address format or nil if invalid address
 function parseMacAddress(mac)

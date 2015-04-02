@@ -14,9 +14,12 @@ angular.module('example', ['n3-line-chart'])
 		$http.get('/csv/test', {cache: false})
 			.success(
 					function(data, status, header, config){
-						data.x=$scope.data.length;
-						$scope.data.push(data);
-						$scope.options.axes.x.max = $scope.data.lenth;
+						if (data) {
+							console.log(data);
+							data.x=$scope.data.length;
+							$scope.data.push(data);
+							$scope.options.axes.x.max = $scope.data.lenth;
+						}
 					}
 				);
 		//$scope.data.push({ x: $scope.data.length, value: 20, otherValue: 10});

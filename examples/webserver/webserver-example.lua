@@ -13,7 +13,7 @@ end
 
 function slave(pipe)
 	for i=1,10 do
-		p:send(math.random(200))
+		pipe:send(math.random(200))
 	end
 	dpdk.sleepMillis(4000)
 end
@@ -23,17 +23,19 @@ function server(pipe)
 	
 	local CSVHandler = class("CSVHandler", turbo.web.RequestHandler)
 	function CSVHandler:get()
-		local a = pipe:recv()
-        	self:write({x=0, value=a, othervalue=20})
+		local a = pipe:tryRecv(0)
+        	if a ~= nil then
+			self:write({x=0, value=a, othervalue=20})
+		end 
 	end
 
 	local app = turbo.web.Application:new({
         	-- Serve single index.html file on root requests.
-        	{"^/$", turbo.web.StaticFileHandler, "./index.html"},
+        	{"^/$", turbo.web.StaticFileHandler, "examples/webserver/index.html"},
         	-- Server csv data
         	{"^/csv/(.*)$", CSVHandler},
         	-- Serve contents of directory.
-        	{"^/(.*)$", turbo.web.StaticFileHandler, "./"}
+        	{"^/(.*)$", turbo.web.StaticFileHandler, "examples/webserver/"}
 	})	
 
 	local srv = turbo.httpserver.HTTPServer(app)
