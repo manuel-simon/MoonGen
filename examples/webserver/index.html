@@ -6,29 +6,33 @@
 	</head>
 
 	<body>
-        <div id="center">
-            <div id="header"><h1>MoonGen</h1></div>
-		
+		<div id="center">
+			<div id="header"><h1>MoonGen</h1></div>
 
-		<div ng-controller='ExampleCtrl'>
-			<div id="chart">
-                <h3>Average Latency</h3>
-				<linechart data="data" options="options"></linechart>
-                <!--<button ng-click="addData()">Add Data</button>-->
+
+			<div ng-controller='ExampleCtrl'>
+				<div id="chart">
+					<h3>Average Latency</h3>
+					<linechart data="data" options="options"></linechart>
+					<!--<button ng-click="addData()">Add Data</button>-->
+				</div>
+
+				<div id="sidebar">
+					<h3>Calculation of cable length</h3>
+					<p>Latest average latency: {{latestLatency}}&mu;s</p>
+					<p>Speed of Light in Copper: {{speedOfLight}}m/s</p>
+					<p>Length of cable [m]: {{lengthOfCableInM}}</p>
+					<p>Length of cable [ft]: {{lengthOfCableInFeet}}</p>
+
+				</div>
 			</div>
 
-            <div id="sidebar">
-                <h3>Calculation of cable lenth</h3>
-                    <p>Latest average latency: {{latestLatency}}&mu;s</p>
-            </div>
+			<script src="./lib/moment.min.js"></script>
+			<script src="./lib/angular.min.js"></script>
+			<script src="./lib/d3.min.js"></script>
+			<script src="./lib/line-chart.js"></script>
+			<script src="./app.js"></script>
+
 		</div>
-
-		<script src="./lib/moment.min.js"></script>
-		<script src="./lib/angular.min.js"></script>
-		<script src="./lib/d3.min.js"></script>
-		<script src="./lib/line-chart.js"></script>
-		<script src="./app.js"></script>
-
-        </div>
 	</body>
 </html>

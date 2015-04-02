@@ -2,20 +2,30 @@ local dpdk		= require "dpdk"
 local pipe		= require "pipe"
 local timer		= require "timer"
 local turbo		= require "turbo"
+local device		= require "device"
+local ts		= require "timestamping"
+local hist		= require "histogram"
 
-function master()
-	print("start master lcore")
+function master(txPort, rxPort)
+	if not txPort or not rxPort then
+		errorf("usage: txPort rxPort");
+	end
+	local txDev = device.config(txPort)
+	local rxDev = device.config(rxPort)
 	local p = pipe:newSlowPipe()
-	dpdk.launchLua("slave", p)
+	dpdk.launchLua("slave", txDev:getTxQueue(0), rxDev:getRxQueue(0), p)
 	dpdk.launchLua("server", p)
 	dpdk.waitForSlaves()
 end
 
-function slave(pipe)
-	for i=1,10 do
-		pipe:send(math.random(200))
+function slave(txQueue, rxQueue, pipe)
+	local timestamper = ts:newTimestamper(txQueue, rxQueue)
+	local hist = hist:new()
+	while dpdk.running() do
+		hist:update(timestamper:measureLatency())
+		pipe:send(hist:avg())
 	end
-	dpdk.sleepMillis(4000)
+	hist:print()
 end
 
 function server(pipe)
