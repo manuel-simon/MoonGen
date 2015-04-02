@@ -11,19 +11,19 @@ angular.module('example', ['n3-line-chart'])
 	];
 
 	$scope.addData = function() {
-		//$http.get('/csv/test', {cache: false})
-		//	.success(
-		//			function(data, status, header, config){
-		//				if (data) {
-		//					console.log(data);
-		//					data.x=$scope.data.length;
-		//					$scope.data.push(data);
-		//					$scope.options.axes.x.max = $scope.data.lenth;
-		//				}
-		//			}
-		//		);
-		$scope.data.push({ x: $scope.data.length, value: 20, otherValue: 10});
-        $scope.latestLatency = $scope.latestLatency + 1;
+            $http.get('/csv/test', {cache: false})
+			.success(
+					function(data, status, header, config){
+						if (data) {
+							console.log(data);
+							data.x=$scope.data.length;
+							$scope.data.push(data);
+							$scope.options.axes.x.max = $scope.data.lenth;
+						}
+					}
+				);
+		//$scope.data.push({ x: $scope.data.length, value: 20, otherValue: 10});
+        //$scope.latestLatency = $scope.latestLatency + 1;
         //$scope.options.axes.x.max = $scope.data.length;
 	};
 	setInterval($scope.addData, 1000);
@@ -35,8 +35,8 @@ angular.module('example', ['n3-line-chart'])
 			y2: {type: 'linear', min: 0, ticks: [1, 2, 3, 4]}
 		},
 		series: [
-		{y: 'value', color: 'steelblue', thickness: '2px', type: 'area', striped: true, label: 'Pouet'},
-		{y: 'otherValue', axis: 'y2', color: 'lightsteelblue', visible: false, drawDots: true, dotSize: 2}
+		{y: 'value', color: 'steelblue', thickness: '2px', type: 'area', striped: true, label: 'Average Latency'}
+		//,{y: 'otherValue', axis: 'y2', color: 'lightsteelblue', visible: false, drawDots: true, dotSize: 2}
 		],
 		lineMode: 'linear',
 		tension: 0.7,
