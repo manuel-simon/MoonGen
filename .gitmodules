@@ -2,3 +2,6 @@
 	path = deps/luajit
 	url = http://luajit.org/git/luajit-2.0.git
 	ignore = untracked
+[submodule "deps/turbo"]
+	path = deps/turbo
+	url = https://github.com/kernelsauce/turbo

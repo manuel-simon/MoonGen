@@ -4,6 +4,7 @@ local timer		= require "timer"
 local turbo		= require "turbo"
 
 function master()
+	print("start master lcore")
 	local p = pipe:newSlowPipe()
 	dpdk.launchLua("slave", p)
 	dpdk.launchLua("server", p)
