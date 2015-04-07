@@ -28,10 +28,10 @@ function histogram:calc()
 		self.numSamples = self.numSamples + v
 		self.sum = self.sum + k * v
 	end
-	self.avg = self.sum / self.numSamples
+	self.average = self.sum / self.numSamples
 	local stdDevSum = 0
 	for k, v in pairs(self.histo) do
-		stdDevSum = stdDevSum + v * (k - self.avg)^2
+		stdDevSum = stdDevSum + v * (k - self.average)^2
 	end
 	self.stdDev = (stdDevSum / (self.numSamples - 1)) ^ 0.5
 
@@ -42,21 +42,23 @@ function histogram:calc()
 	local quartSamples = self.numSamples / 4
 
 	self.quarts = {}
+	if self.numSamples < 1 then
+		self.quarts = {0, 0, 0}
+	end
 
 	local idx = 0
 	for _, p in ipairs(self.sortedHisto) do
-		-- TODO: inefficient
-		for _ = 1, p.v do
-			if not self.quarts[1] and idx >= quartSamples then
-				self.quarts[1] = p.k
-			elseif not self.quarts[2] and idx >= quartSamples * 2 then
-				self.quarts[2] = p.k
-			elseif not self.quarts[3] and idx >= quartSamples * 3 then
-				self.quarts[3] = p.k
-				break
-			end
-			idx = idx + 1
+		if not self.quarts[1] and (idx + p.v) >= quartSamples then
+			self.quarts[1] = p.k
 		end
+		if not self.quarts[2] and (idx + p.v) >= quartSamples * 2 then
+			self.quarts[2] = p.k
+		end
+		if not self.quarts[3] and (idx + p.v) >= quartSamples * 3 then
+			self.quarts[3] = p.k
+			break
+		end
+		idx = idx + p.v
 	end
 	self.dirty = false
 end
@@ -64,13 +66,13 @@ end
 function histogram:totals()
 	if self.dirty then self:calc() end
 
-	return self.numSamples, self.sum, self.avg
+	return self.numSamples, self.sum, self.average
 end
 
 function histogram:avg()
 	if self.dirty then self:calc() end
 
-	return self.avg
+	return self.average
 end
 
 function histogram:standardDeviation()
@@ -107,7 +109,7 @@ end
 function histogram:print()
 	if self.dirty then self:calc() end
 
-	printf("Samples: %d, Average: %.1f, StdDev: %.1f, Quartiles: %.1f/%.1f/%.1f", self.numSamples, self.avg, self.stdDev, unpack(self.quarts))
+	printf("Samples: %d, Average: %.1f, StdDev: %.1f, Quartiles: %.1f/%.1f/%.1f", self.numSamples, self.average, self.stdDev, unpack(self.quarts))
 end
 
 return histogram

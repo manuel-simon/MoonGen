@@ -19,11 +19,12 @@
 
 				<div id="sidebar">
 					<h3>Calculation of cable length</h3>
-					<p>Latest average latency: {{latestLatency}}&mu;s</p>
-					<p>Speed of Light in Copper: {{speedOfLight}}m/s</p>
-					<p>Length of cable [m]: {{lengthOfCableInM}}</p>
-					<p>Length of cable [ft]: {{lengthOfCableInFeet}}</p>
-
+					<table>
+						<tr><td>Latest average latency [ns]:</td><td style="text-align: right;">{{latestLatency}}</td></tr>
+						<tr><td>Speed of Light in Copper [km/s]:</td><td style="text-align: right;">{{speedOfLight}}<td></tr>
+						<tr><td>Length of cable [m]:</td><td style="text-align:right;">{{lengthOfCableInM}}</td></tr>
+						<tr><td>Length of cable [ft]:</td><td style="text-align:right;">{{lengthOfCableInFeet}}</td></tr>
+					</table>
 				</div>
 			</div>
 
