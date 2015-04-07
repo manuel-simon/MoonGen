@@ -21,7 +21,7 @@ $scope.addData = function() {
 				$scope.options.axes.x.min = data.x - 60;
 				$scope.options.axes.x.max = data.x;
 				$scope.latestLatency = data.y;
-				$scope.lengthOfCableInM = Math.round($scope.speedOfLight * ($scope.latestLatency / 1000 / 1000 / 1000) * 1000) / 1000;
+				$scope.lengthOfCableInM = ($scope.speedOfLight / 1000 / 1000 / 1000);// * $scope.latestLatency * 1000) / 1000;
 				$scope.lengthOfCableInFeet = Math.round($scope.lengthOfCableInM * $scope.mToFeetFactor * 1000) / 1000;
 			}
 		}
