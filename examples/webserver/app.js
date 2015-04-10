@@ -59,8 +59,8 @@ $scope.options = {
 	columnsHGap: 5
 	};
 
-            $scope.minimum = -10;
-            $scope.maximum = 0;
+//            $scope.minimum = -10;
+//            $scope.maximum = 0;
 $scope.latestLatency = 0;
 
 $scope.averageModulationTimeInNs = 2195.20;
