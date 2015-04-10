@@ -34,7 +34,7 @@ end
 function slave(txQueue, rxQueue, pipe)
 
 	local timestamper = ts:newTimestamper(txQueue, rxQueue)
-	--minimum wait time between consecutive timestampings (in ms)
+	--minimum wait time between consecutive timestampings (in s)
 	local waitTimer = timer:new(0.001)
 
 	while dpdk.running() do
