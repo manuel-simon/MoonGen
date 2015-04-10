@@ -20,7 +20,7 @@ $scope.addData = function() {
 				data.x=$scope.data.length;
 				$scope.data.push(data);
                 if ($scope.data.length > 10) {
-                    //$scope.data.splice(0, 1);
+                    $scope.data[10].y=0;
                 }
 				$scope.options.axes.x.min = $scope.minimum++;
                 $scope.options.axes.x.max = $scope.maximum++;
