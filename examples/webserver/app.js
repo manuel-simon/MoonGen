@@ -19,16 +19,24 @@ $scope.addData = function() {
 				console.log(data);
 				data.x=$scope.data.length;
 				$scope.data.push(data);
-				$scope.options.axes.x.min = data.x - 60;
-				$scope.options.axes.x.max = data.x;
+                if ($scope.data.length > 60) {
+                    $scope.data.splice(0, 1);
+                }
+				$scope.options.axes.x.min = $scope.data[0].x;
+				$scope.options.axes.x.max = $scope.data[$scope.data.length-1].x;
 				$scope.latestLatency = data.y;
 				$scope.lengthOfCableInM = ($scope.speedOfLightInMPerSInCopper / 1000 / 1000 / 1000) * ($scope.latestLatency-$scope.averageModulationTimeInNs);// * $scope.latestLatency * 1000) / 1000;
 				$scope.lengthOfCableInFeet = $scope.lengthOfCableInM * $scope.mToFeetFactor;
 			}
 		}
 		);
-	
-//$scope.data.push({ x: $scope.data.length, value: 20, otherValue: 10});
+//$scope.latestLatency++;
+//$scope.data.push({ x:$scope.latestLatency, y: 20});
+//if ($scope.data.length > 11) {
+//            $scope.data.splice(0, 1);
+//}
+//$scope.options.axes.x.min = $scope.data[0].x;
+//$scope.options.axes.x.max = $scope.data[$scope.data.length-1].x;
 //$scope.latestLatency = $scope.latestLatency + 1;
 //$scope.options.axes.x.max = $scope.data.length;
 };
