@@ -29,12 +29,18 @@ div#header {
 
 div#chart {
     float: left;
-    width:75%;
+    width:66%;
     height:500px;
 }
 
 div#sidebar {
     vertical-align:top;
     float:right;
-    width:25%;
+    width:33%;
+}
+
+div#sidebar table {
+    border-collapse: collapse;
+    margin: 0;
+    width: 100%;
 }

@@ -20,10 +20,16 @@
 				<div id="sidebar">
 					<h3>Calculation of cable length</h3>
 					<table>
-						<tr><td>Latest average latency [ns]:</td><td style="text-align: right;">{{latestLatency}}</td></tr>
-						<tr><td>Speed of Light in Copper [km/s]:</td><td style="text-align: right;">{{speedOfLight}}<td></tr>
-						<tr><td>Length of cable [m]:</td><td style="text-align:right;">{{lengthOfCableInM}}</td></tr>
-						<tr><td>Length of cable [ft]:</td><td style="text-align:right;">{{lengthOfCableInFeet}}</td></tr>
+                        <tr><td style="font-weight: bold;">Measured values:</td><td></td><td></td></tr>
+                        <tr><td>Latest average latency:</td><td style="text-align: right;">{{latestLatency.toFixed(0)}}</td><td>ns</td></tr>
+                        
+                        <tr><td style="font-weight: bold;padding-top:1em">Constants:</td><td></td><td></td></tr>
+                        <tr><td>X540 modulation time (avg):</td><td style="text-align: right;">{{averageModulationTimeInNs.toFixed(0)}}</td><td>ns</td></tr>
+						<tr><td>Speed of Light in Copper:</td><td style="text-align: right;">{{speedOfLightInMPerSInCopper.toFixed(0)}}</td><td>m/s</td></tr>
+                        
+                        <tr><td style="font-weight: bold;padding-top:1em;">Calculated values:</td><td></td><td></td></tr>
+						<tr><td>Length of cable:</td><td  style="text-align: right;">{{lengthOfCableInM.toFixed(1)}}</td><td>m</td></tr>
+						<tr><td>Length of cable:</td><td style="text-align:right;">{{lengthOfCableInFeet.toFixed(1)}}</td><td>ft</td></tr>
 					</table>
 				</div>
 			</div>

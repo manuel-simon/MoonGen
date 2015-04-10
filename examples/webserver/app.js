@@ -10,6 +10,7 @@ angular.module('example', ['n3-line-chart'])
 //{x: 5, value: 42, otherValue: 45}
 ];
 
+            
 $scope.addData = function() {
 	$http.get('/csv/test', {cache: false})
 	.success(
@@ -21,7 +22,8 @@ $scope.addData = function() {
 				$scope.options.axes.x.min = data.x - 60;
 				$scope.options.axes.x.max = data.x;
 				$scope.latestLatency = data.y;
-				$scope.lengthOfCableInM = ($scope.speedOfLight / 1000 / 1000 / 1000);// * $scope.latestLatency * 1000) / 1000;
+             
+				$scope.lengthOfCableInM = ($scope.speedOfLightInMPerSInCopper-$scope.averageModulationTimeInNs / 1000 / 1000 / 1000);// * $scope.latestLatency * 1000) / 1000;
 				$scope.lengthOfCableInFeet = Math.round($scope.lengthOfCableInM * $scope.mToFeetFactor * 1000) / 1000;
 			}
 		}
@@ -51,8 +53,10 @@ $scope.options = {
 	};
 
 $scope.latestLatency = 0;
-//*0.59 for copper wire
-$scope.speedOfLight = 299792458 / 1000 * 0.59;
+
+$scope.averageModulationTimeInNs = 2195.20;
+$scope.speedOfLightInMPerS = 299792458;
+$scope.speedOfLightInMPerSInCopper = $scope.speedOfLightInMPerS * 0.59;
 $scope.lengthOfCableInM = 0;
 $scope.lengthOfCableInFeet = 0;
 $scope.mToFeetFactor = 3.2808399;
