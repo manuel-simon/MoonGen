@@ -26,8 +26,13 @@ $scope.addData = function() {
 				}
 				$scope.options.axes.x.max = $scope.data[$scope.data.length-1].x;
 				$scope.latestLatency = data.y;
-				$scope.lengthOfCableInM = ($scope.speedOfLightInMPerSInCopper / 1000 / 1000 / 1000) * ($scope.latestLatency-$scope.averageModulationTimeInNs);
-				$scope.lengthOfCableInFeet = $scope.lengthOfCableInM * $scope.mToFeetFactor;
+				$scope.lengthOfCableInMAvg = ($scope.speedOfLightInMPerSInCopper / 1000 / 1000 / 1000) * ($scope.latestLatency-$scope.averageModulationTimeInNs);
+				$scope.lengthOfCableInMMin = (($scope.speedOfLightInMPerSInCopper+$scope.speedOfLightInMPerSInCopperUncertainty) / 1000 / 1000 / 1000) * ($scope.latestLatency-($scope.averageModulationTimeInNs+$scope.averageModulationTimeInNsUncertainty));
+				$scope.lengthOfCableInMMax = (($scope.speedOfLightInMPerSInCopper-$scope.speedOfLightInMPerSInCopperUncertainty) / 1000 / 1000 / 1000) * ($scope.latestLatency-($scope.averageModulationTimeInNs-$scope.averageModulationTimeInNsUncertainty));
+				$scope.lengthOfCableInFeetMin = $scope.lengthOfCableInMMin * $scope.mToFeetFactor;
+				$scope.lengthOfCableInFeetAvg = $scope.lengthOfCableInMAvg * $scope.mToFeetFactor;
+				$scope.lengthOfCableInFeetMax = $scope.lengthOfCableInMMax * $scope.mToFeetFactor;
+
 			}
 		}
 );
@@ -54,8 +59,12 @@ $scope.options = {
 $scope.latestLatency = 0;
 $scope.numPointsDisplayed = 60;
 $scope.averageModulationTimeInNs = 2195.20;
+$scope.averageModulationTimeInNsUncertainty = 9.6;
 $scope.speedOfLightInMPerS = 299792458;
-$scope.speedOfLightInMPerSInCopper = $scope.speedOfLightInMPerS * 0.59;
+$scope.copperFactor = 0.59;
+$scope.speedOfLightInMPerSInCopper = $scope.speedOfLightInMPerS * $scope.copperFactor;
+$scope.copperFactorUncertainty = 0.065;
+$scope.speedOfLightInMPerSInCopperUncertainty = $scope.speedOfLightInMPerS * $scope.copperFactorUncertainty;
 $scope.lengthOfCableInM = 0;
 $scope.lengthOfCableInFeet = 0;
 $scope.mToFeetFactor = 3.2808399;
