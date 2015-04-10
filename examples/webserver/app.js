@@ -23,8 +23,8 @@ $scope.addData = function() {
 				$scope.options.axes.x.max = data.x;
 				$scope.latestLatency = data.y;
              
-				$scope.lengthOfCableInM = ($scope.speedOfLightInMPerSInCopper-$scope.averageModulationTimeInNs / 1000 / 1000 / 1000);// * $scope.latestLatency * 1000) / 1000;
-				$scope.lengthOfCableInFeet = Math.round($scope.lengthOfCableInM * $scope.mToFeetFactor * 1000) / 1000;
+				$scope.lengthOfCableInM = ($scope.speedOfLightInMPerSInCopper / 1000 / 1000 / 1000) * ($scope.latestLatency-$scope.averageModulationTimeInNs);// * $scope.latestLatency * 1000) / 1000;
+				$scope.lengthOfCableInFeet = $scope.lengthOfCableInM * $scope.mToFeetFactor;
 			}
 		}
 		);
