@@ -20,7 +20,7 @@ $scope.addData = function() {
 				data.x=$scope.data.length;
 				$scope.data.push(data);
                 if ($scope.data.length > 10) {
-                    $scope.data[0].visible= false;
+                    $scope.data.splice(0, 1);
                 }
 				$scope.options.axes.x.min = $scope.minimum++;
                 $scope.options.axes.x.max = $scope.maximum++;
@@ -59,8 +59,8 @@ $scope.options = {
 	columnsHGap: 5
 	};
 
-            $scope.minimum = -60;
-            $scope.maximum = 0;
+            $scope.minimum = 0;
+            $scope.maximum = 60;
 $scope.latestLatency = 0;
 
 $scope.averageModulationTimeInNs = 2195.20;
