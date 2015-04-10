@@ -19,8 +19,8 @@ $scope.addData = function() {
 				console.log(data);
 				data.x=$scope.data.length;
 				$scope.data.push(data);
-                if ($scope.data.length > 61) {
-                    $scope.data.splice(0, 1);
+                if ($scope.data.length > 10) {
+                    //$scope.data.splice(0, 1);
                 }
 				$scope.options.axes.x.min = $scope.minimum++;
                 $scope.options.axes.x.max = $scope.maximum++;
@@ -40,7 +40,7 @@ $scope.addData = function() {
 //$scope.latestLatency = $scope.latestLatency + 1;
 //$scope.options.axes.x.max = $scope.data.length;
 };
-setInterval($scope.addData, 1000);
+setInterval($scope.addData, 500);
 
 $scope.options = {
 	axes: {
