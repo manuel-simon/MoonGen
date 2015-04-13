@@ -120,11 +120,20 @@ function server(pipe)
 		runtime = runtime + 1
 	end
 
+	local PostSettingHandler = class("PostSettingHandler", turbo.web.RequestHandler)
+	function PostSettingHandler:post()
+		local json = self:get_json()
+		print(json)
+		self:write({x=runtime, y=a})
+	end
+
 	local app = turbo.web.Application:new({
 		-- Serve single index.html file on root requests.
 		{"^/$", turbo.web.StaticFileHandler, "examples/webserver/speed.html"},
-		-- Server csv data
+		-- Serve csv data
 		{"^/csv/(.*)$", CSVHandler},
+		-- Accept and Serve settings
+		{„^/post/(.*)$“, PostSettingHandler},
 		-- Serve contents of directory.
 		{"^/(.*)$", turbo.web.StaticFileHandler, "examples/webserver/"}
 	})	

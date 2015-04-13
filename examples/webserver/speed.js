@@ -1,4 +1,4 @@
-angular.module('example', ['n3-line-chart'])
+angular.module('example', ['n3-line-chart', 'ui.slider'])
 .controller('ExampleCtrl', function($scope, $http) {
 
 	$scope.data = [
@@ -32,6 +32,12 @@ $scope.addData = function() {
 };
 setInterval($scope.addData, 1000);
 
+$scope.Settings = function() {
+            $http.post('/post/setting', {cache: false, msg:'{setThroughput:' + setThroughput + '}'})
+            .success(
+                     function(data, status, header, config){}
+                     );
+            };
 $scope.options = {
 	axes: {
 		x: {key: 'x', labelFunction: function(y) {return y;}, type: 'linear', min: 0},//max: $scope.data.length, ticks: 2},
@@ -48,6 +54,7 @@ $scope.options = {
 	columnsHGap: 5
 	};
 
+$scope.setThroughput = 0;
 $scope.latestThroughput = 0;
 $scope.numPointsDisplayed = 60;
 });

@@ -3,6 +3,7 @@
 	<head>
 		<title>MoonGen</title>
 		<link rel="stylesheet" type="text/css" href="style.css" />
+        <link rel="stylesheet" type="text/css" href="./lib/slider.css" />
 	</head>
 
 	<body>
@@ -12,7 +13,7 @@
 
 			<div ng-controller='ExampleCtrl'>
 				<div id="chart">
-					<h3>Throughput [Packets per Second]</h3>
+					<h3>Throughput</h3>
 					<linechart data="data" options="options"></linechart>
 					<!--
 					<button ng-click="addData()">Add Data</button>
@@ -20,8 +21,15 @@
 				</div>
 
 				<div id="sidebar">
-					<h3>Throughput</h3>
-					<table>
+					<h3>Control Bar</h3>
+                    <table>
+                        <tr><td style="font-weight: bold;">Settings:</td><td></td><td></td></tr>
+                        <tr><td>Throughput:</td><td style="text-align: right;">{{setThroughput.toFixed(0)}}</td><td>Mbit/s</td></tr>
+                        <tr>
+                            <td colspan="2">
+                         <slider floor="0" ceiling="9999.73" step="0.61" precision="2" ng-model="setThroughput"></slider>
+                         </td>
+                        </tr>
 						<tr><td style="font-weight: bold;">Measured values:</td><td></td><td></td></tr>
 						<tr><td>Latest throughput:</td><td style="text-align: right;">{{latestThroughput.toFixed(0)}}</td><td>packets/s</td></tr>
 					</table>
@@ -33,7 +41,7 @@
 			<script src="./lib/d3.min.js"></script>
 			<script src="./lib/line-chart.js"></script>
 			<script src="./speed.js"></script>
-
-		</div>
+            <script src="./lib/slider.js"></script>
+        </div>
 	</body>
 </html>
