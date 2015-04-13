@@ -133,7 +133,7 @@ function server(pipe)
 		-- Serve csv data
 		{"^/csv/(.*)$", CSVHandler},
 		-- Accept and Serve settings
-		{„^/post/(.*)$“, PostSettingHandler},
+		{"^/post/(.*)$", PostSettingHandler},
 		-- Serve contents of directory.
 		{"^/(.*)$", turbo.web.StaticFileHandler, "examples/webserver/"}
 	})	
