@@ -31,13 +31,19 @@ $scope.addData = function() {
 );
 };
 setInterval($scope.addData, 1000);
-
-$scope.Settings = function() {
+            
+$scope.addSetting = function() {
+            //$scope.latestThroughput = $scope.setThroughput;
+            //$scope.$apply();
             $http.post('/post/setting', {cache: false, msg:'{setThroughput:' + setThroughput + '}'})
             .success(
-                     function(data, status, header, config){}
+                     function(data, status, header, config){
+                        console.log("addSetting executed.");
+                     }
                      );
-            };
+            };             
+};
+        
 $scope.options = {
 	axes: {
 		x: {key: 'x', labelFunction: function(y) {return y;}, type: 'linear', min: 0},//max: $scope.data.length, ticks: 2},
