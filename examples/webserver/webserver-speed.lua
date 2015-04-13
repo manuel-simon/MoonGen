@@ -22,9 +22,9 @@ function master(txPort)
 	local txDev = device.config(txPort)
 	device.waitForLinks()	
 	local p = pipe:newSlowPipe()
-	local txQueue = txDev:getTxQueue(0):setRate(1)
+	--local txQueue = txDev:getTxQueue(0):setRate(1)
 	dpdk.launchLua("slave", txDev:getTxQueue(0), p)
-	dpdk.launchLua("server", p)
+	dpdk.launchLua("server", txDev:getTxQueue(0), p)
 	dpdk.waitForSlaves()
 
 end
@@ -94,9 +94,27 @@ function slave(txQueue, pipe)
 
 end
 
--- Visualize data accepted via pipe.
+-- Print contents of `tbl`, with indentation.
+-- `indent` sets the initial level of indentation.
+function tprint (tbl, indent)
+	if not indent then indent = 0 end
+	for k, v in pairs(tbl) do
+		formatting = string.rep("  ", indent) .. k .. ": "
+		if type(v) == "table" then
+			print(formatting)
+			tprint(v, indent+1)
+		elseif type(v) == 'boolean' then
+			print(formatting .. tostring(v))      
+		else
+			print(formatting .. v)
+		end
+	end
+end
+
+-- Accept settings via http post & visualize data accepted via pipe.
+-- txQueue Queue to set rate.
 -- pipe Pipe to accept data to visualize.
-function server(pipe)
+function server(txQueue, pipe)
 
 	local port = 80
 	local hist = hist:new()
@@ -123,8 +141,10 @@ function server(pipe)
 	local PostSettingHandler = class("PostSettingHandler", turbo.web.RequestHandler)
 	function PostSettingHandler:post()
 		local json = self:get_json()
-		print(json)
-		self:write({x=runtime, y=a})
+		tprint(json)
+		if json.setThroughput ~= nil then
+			txQueue:setRate(json.setThroughput);
+		end
 	end
 
 	local app = turbo.web.Application:new({
