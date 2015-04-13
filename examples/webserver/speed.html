@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<html lang="en" ng-app="example">
+	<head>
+		<title>MoonGen</title>
+		<link rel="stylesheet" type="text/css" href="style.css" />
+	</head>
+
+	<body>
+		<div id="center">
+			<div id="header"><h1>MoonGen</h1></div>
+
+
+			<div ng-controller='ExampleCtrl'>
+				<div id="chart">
+					<h3>Throughput [Packets per Second]</h3>
+					<linechart data="data" options="options"></linechart>
+					<!--
+					<button ng-click="addData()">Add Data</button>
+					-->
+				</div>
+
+				<div id="sidebar">
+					<h3>Throughput</h3>
+					<table>
+						<tr><td style="font-weight: bold;">Measured values:</td><td></td><td></td></tr>
+						<tr><td>Latest throughput:</td><td style="text-align: right;">{{latestThroughput.toFixed(0)}}</td><td>packets/s</td></tr>
+					</table>
+				</div>
+			</div>
+
+			<script src="./lib/moment.min.js"></script>
+			<script src="./lib/angular.min.js"></script>
+			<script src="./lib/d3.min.js"></script>
+			<script src="./lib/line-chart.js"></script>
+			<script src="./speed.js"></script>
+
+		</div>
+	</body>
+</html>
