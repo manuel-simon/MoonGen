@@ -13,7 +13,7 @@
 
 			<div ng-controller='ExampleCtrl'>
 				<div id="chart">
-					<h3>Throughput</h3>
+					<h3>Throughput [kpackets per second]</h3>
 					<linechart data="data" options="options"></linechart>
 					<!--
 					<button ng-click="addData()">Add Data</button>
@@ -27,7 +27,7 @@
                         <tr><td>Throughput:</td><td style="text-align: right;">{{setThroughput.toFixed(0)}}</td><td>Mbit/s</td></tr>
                         <tr>
                             <td colspan="2">
-                         <slider floor="0" ceiling="10000" step="0.61" precision="2" ng-model="setThroughput" ng-click="addSetting()"></slider>
+                         <slider floor="40" ceiling="10000" step="0.61" precision="2" ng-model="setThroughput" ng-click="addSetting()"></slider>
                          </td>
                         </tr>
 						<tr><td style="font-weight: bold;">Measured values:</td><td></td><td></td></tr>

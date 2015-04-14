@@ -17,6 +17,7 @@ $scope.addData = function() {
 		function(data, status, header, config){
 			if (data) {
 				console.log(data);
+				data.y = data.y / 1000;
 				$scope.data.push(data);
 				if ($scope.data.length > $scope.numPointsDisplayed + 1) {
 					$scope.data.splice(0, 1);
@@ -25,7 +26,7 @@ $scope.addData = function() {
 					$scope.options.axes.x.min = $scope.data[$scope.data.length-1].x- $scope.numPointsDisplayed;	
 				}
 				$scope.options.axes.x.max = $scope.data[$scope.data.length-1].x;
-				$scope.latestThroughput = data.y;
+				$scope.latestThroughput = data.y * 1000;
 			}
 		}
 		);
