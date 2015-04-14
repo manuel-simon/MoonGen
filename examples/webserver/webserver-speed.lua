@@ -13,30 +13,37 @@ local headers = require "headers"
 local packet  = require "packet"
 
 local NUM_PIPES = 1
-local NUM_QUEUES = 3 
+local NUM_QUEUES = 4 
 
 -- Initialize one port to generate traffic.
 -- txPort Port sending packets.
-function master(txPort)
-	if not txPort then
-		errorf("usage: txPort");
+function master(rxPort, txPort)
+	if not rxPort or not txPort then
+		errorf("usage: rxPort txPort");
 	end
-	-- configure device for 1 rx (0 queues impossible) and NUM_QUEUES tx queues
+	-- configure transferring device for 1 rx (0 queues impossible) and NUM_QUEUES tx queues
 	local txDev = device.config(txPort, 1, NUM_QUEUES)
-	device.waitForLinks()
-	local pipes = {}
-	local queues = {}
+	-- configure receiving device for 1 rx and 1 tx queue (0 queues impossible)
+	local rxDev = device.config(rxPort, 1, 1)
 
+	device.waitForLinks()
+
+	local throughputPipes = {}
+	local latencyPipe = pipe:newSlowPipe()
+	local queues = {}
 	for i=1, NUM_PIPES do
 		pipes[i] = pipe:newSlowPipe()
 	end
 	for i=1, NUM_QUEUES do
 		queues[i] = txDev:getTxQueue(i-1)
 	end
-	dpdk.launchLua("slave", queues, pipes[1], 1, 3)
+	dpdk.launchLua("throughputSlave", queues, throughputPipes[1], 1, 3)
+	dpdk.launchLua("latencySlave", queues[4], rxDev:getRxQueue(0),  latencyPipe)
 
+	--SAVE THE THREADS and start server in master thread
 	--dpdk.launchLua("server", queues, pipes)
-	server(queues, pipes)
+	server(queues, throughputPipes, latencyPipe)
+
 	dpdk.waitForSlaves()
 
 end
@@ -46,7 +53,7 @@ end
 -- pipes Pipes to send throughput values.
 -- start Start index of first queue to use from txQueues/pipes.
 -- fin End index of last queue to use from txQueues/pipes
-function slave(txQueues, p, start, fin)
+function throughputSlave(txQueues, p, start, fin)
 
 	local packetLen = 64 - 4
 
@@ -95,7 +102,7 @@ function slave(txQueues, p, start, fin)
 
 			-- offload checksums to NIC
 			bufs[i]:offloadUdpChecksums(ipv4)
-			
+
 			totalSent = totalSent + txQueues[i]:send(bufs[i])
 
 		end
@@ -115,9 +122,28 @@ function slave(txQueues, p, start, fin)
 
 end
 
+-- Measure the latency between two queues and send latency via a pipe.
+-- txQueue Queue sending packets to timestamp.
+-- rxQueue Queue accepting packets to timestamp.
+-- pipe Pipe to send latency of timestamped packets.
+function latencySlave(txQueue, rxQueue, pipe)
+
+	local timestamper = ts:newTimestamper(txQueue, rxQueue)
+	--minimum wait time between consecutive timestampings (in s)
+	local waitTimer = timer:new(0.001)
+
+	while dpdk.running() do
+		waitTimer:reset()	
+		local stamp = timestamper:measureLatency()
+		pipe:send(stamp)
+		waitTimer:busyWait()
+	end
+
+end
+
 -- Extract the latest data from a pipe.
 function acceptData(pipe, num)
-		
+
 	local numMsgs = tonumber(pipe:count())
 	local p0 = 0
 	for i=1,numMsgs do
@@ -130,8 +156,9 @@ end
 
 -- Accept settings via http post & visualize data accepted via pipe.
 -- queues Queues to set rate for.
--- pipes Pipes to accept data to visualize from member in queues.
-function server(queues, pipes)
+-- throughputPipes Pipes to accept data to visualize from member in queues.
+-- latencyPipe Pipe to accept data from latency measurements.
+function server(queues, throughputPipes, latencyPipe)
 
 	local port = 80
 	local hist = hist:new()
@@ -151,10 +178,20 @@ function server(queues, pipes)
 		runtime = runtime + 1
 	end
 
-    local LatencyHistogramHandler = class("LatencyHistogramHandler", turbo.web.RequestHandler)
-    function LatencyHistogramHandler:get()
+	local LatencyHistogramHandler = class("LatencyHistogramHandler", turbo.web.RequestHandler)
+	function LatencyHistogramHandler:get()
+		p = {}
+		result = 0
+		for i=1, #pipes do
+			p[i] = acceptData(pipes[i], i)	
+		end
+		for i=1, #p do
+			result = result + p[i]
+		end
+		self:write({x=runtime, y=result})
+		runtime = runtime + 1
 self:write({{x=1, y=100}, {x=2, y=200}, {x=3, y=150}})
-    end
+	end
 
 	local PostSettingHandler = class("PostSettingHandler", turbo.web.RequestHandler)
 	function PostSettingHandler:post()
@@ -173,8 +210,8 @@ self:write({{x=1, y=100}, {x=2, y=200}, {x=3, y=150}})
 		{"^/$", turbo.web.StaticFileHandler, "examples/webserver/speed.html"},
 		-- Serve throughput data
 		{"^/data/throughput", ThroughputHandler},
-        -- Serve latency data
-        {"^/data/latency", LatencyHistogramHandler},
+		-- Serve latency data
+		{"^/data/latency", LatencyHistogramHandler},
 		-- Accept and Serve settings
 		{"^/post/(.*)$", PostSettingHandler},
 		-- Serve contents of directory.
