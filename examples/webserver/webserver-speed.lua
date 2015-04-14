@@ -137,8 +137,8 @@ function server(queues, pipes)
 	local hist = hist:new()
 	local runtime = 0
 
-	local CSVHandler = class("CSVHandler", turbo.web.RequestHandler)
-	function CSVHandler:get()
+	local ThroughputHandler = class("ThroughputHandler", turbo.web.RequestHandler)
+	function ThroughputHandler:get()
 		p = {}
 		result = 0
 		for i=1, #pipes do
@@ -150,6 +150,11 @@ function server(queues, pipes)
 		self:write({x=runtime, y=result})
 		runtime = runtime + 1
 	end
+
+    local LatencyHistogramHandler = class("LatencyHistogramHandler", turbo.web.RequestHandler)
+    function LatencyHistogramHandler:get()
+self:write({{x=1, y=100}, {x=2, y=200}, {x=3, y=150}})
+    end
 
 	local PostSettingHandler = class("PostSettingHandler", turbo.web.RequestHandler)
 	function PostSettingHandler:post()
@@ -166,8 +171,10 @@ function server(queues, pipes)
 	local app = turbo.web.Application:new({
 		-- Serve single index.html file on root requests.
 		{"^/$", turbo.web.StaticFileHandler, "examples/webserver/speed.html"},
-		-- Serve csv data
-		{"^/csv/(.*)$", CSVHandler},
+		-- Serve throughput data
+		{"^/data/throughput", ThroughputHandler},
+        -- Serve latency data
+        {"^/data/latency", LatencyHistogramHandler},
 		-- Accept and Serve settings
 		{"^/post/(.*)$", PostSettingHandler},
 		-- Serve contents of directory.
