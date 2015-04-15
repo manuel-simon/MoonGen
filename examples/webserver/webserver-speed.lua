@@ -1,5 +1,5 @@
 
--- Send packets on a specified port and visualize the throughput on a webserver (with a cable length calculation)
+-- Load generator with included latency measurement controllable via web interface.
 
 local dpdk    = require "dpdk"
 local pipe    = require "pipe"
@@ -12,40 +12,46 @@ local ts      = require "timestamping"
 local headers = require "headers"
 local packet  = require "packet"
 
+-- number of pipes/queues for loadgenerator
 local NUM_PIPES = 1
-local NUM_QUEUES = 4 
+local NUM_QUEUES = 3 
 
--- Initialize one port to generate traffic.
--- txPort Port sending packets.
+-- Initialize load generator, latency measurement and webserver.
+-- rxPort Port where to accept timestamped packets
+-- txPort Port sending packets of loadgen & latency measurement alike.
 function master(rxPort, txPort)
 	if not rxPort or not txPort then
 		errorf("usage: rxPort txPort");
 	end
-	-- configure transferring device for 1 rx (0 queues impossible) and NUM_QUEUES tx queues
-	local txDev = device.config(txPort, 1, NUM_QUEUES)
-	-- configure receiving device for 1 rx and 1 tx queue (0 queues impossible)
+	--configure transferring device for 1 rx (0 no possible) and NUM_QUEUES+1 tx queues (latency measurement + loadgen)
+	local txDev = device.config(txPort, 1, NUM_QUEUES+1)
+	-- configure receiving device for 1 rx (latency measurement) and 1 tx queue (0 queues impossible)
 	local rxDev = device.config(rxPort, 1, 1)
-
 	device.waitForLinks()
 
+	--LOADGEN TASK
 	local throughputPipes = {}
-	local latencyPipe = pipe:newSlowPipe()
-	local queues = {}
+	local throughputQueues = {}
 	for i=1, NUM_PIPES do
-		pipes[i] = pipe:newSlowPipe()
+		throughputPipes[i] = pipe:newSlowPipe()
 	end
 	for i=1, NUM_QUEUES do
-		queues[i] = txDev:getTxQueue(i-1)
+		throughputQueues[i] = txDev:getTxQueue(i-1)
 	end
-	dpdk.launchLua("throughputSlave", queues, throughputPipes[1], 1, 3)
-	dpdk.launchLua("latencySlave", queues[4], rxDev:getRxQueue(0),  latencyPipe)
+	dpdk.launchLua("throughputSlave", throughputQueues, throughputPipes[1], 1, 3)
+	
+	--LATENCY MEASUREMENT TASK
+	local latencyPipe = pipe:newSlowPipe()
+	local latencyTxQueue = txDev:getTxQueue(NUM_QUEUES)
+	local latencyRxQueue = rxDev:getRxQueue(0)
+	dpdk.launchLua("latencySlave", latencyTxQueue, latencyRxQueue, latencyPipe)
 
+	--WEBSERVER TASK
 	--SAVE THE THREADS and start server in master thread
 	--dpdk.launchLua("server", queues, pipes)
-	server(queues, throughputPipes, latencyPipe)
+	server(throughputQueues, throughputPipes, latencyPipe)
 
 	dpdk.waitForSlaves()
-
 end
 
 -- Measure the throughput and send this value via a pipe.
@@ -134,7 +140,7 @@ function latencySlave(txQueue, rxQueue, pipe)
 
 	while dpdk.running() do
 		waitTimer:reset()	
-		local stamp = timestamper:measureLatency()
+		local stamp = math.random(1, 100) --timestamper:measureLatency()
 		pipe:send(stamp)
 		waitTimer:busyWait()
 	end
@@ -168,8 +174,8 @@ function server(queues, throughputPipes, latencyPipe)
 	function ThroughputHandler:get()
 		p = {}
 		result = 0
-		for i=1, #pipes do
-			p[i] = acceptData(pipes[i], i)	
+		for i=1, #throughputPipes do
+			p[i] = acceptData(throughputPipes[i], i)	
 		end
 		for i=1, #p do
 			result = result + p[i]
@@ -180,17 +186,25 @@ function server(queues, throughputPipes, latencyPipe)
 
 	local LatencyHistogramHandler = class("LatencyHistogramHandler", turbo.web.RequestHandler)
 	function LatencyHistogramHandler:get()
-		p = {}
-		result = 0
-		for i=1, #pipes do
-			p[i] = acceptData(pipes[i], i)	
+		local numMsgs = tonumber(latencyPipe:count())
+		local p0 = 0
+		for i=1,numMsgs do
+			p0 = latencyPipe:tryRecv(0)
+			hist:update(p0)
 		end
-		for i=1, #p do
-			result = result + p[i]
+		hist:calc()
+		result = ""
+		for k, v in pairs(hist.histo) do
+			if result.length == 0 then
+				result = "{\n"
+			else 
+				result = result .. ",\n"
+			end
+			result = result .. "{x:" .. k .. ", y:" .. v .. "}"
 		end
-		self:write({x=runtime, y=result})
-		runtime = runtime + 1
-self:write({{x=1, y=100}, {x=2, y=200}, {x=3, y=150}})
+		result = result .. "}\n"
+		print(result)
+		self:write(result)
 	end
 
 	local PostSettingHandler = class("PostSettingHandler", turbo.web.RequestHandler)

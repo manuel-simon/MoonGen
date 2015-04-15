@@ -54,7 +54,8 @@ $scope.addHistData = function() {
             $http.get('/data/latency', {cache: false})
             .success(
                      function(data, status, header, config){
-                     if (data) {$scope.histData = data;}
+                     	console.log("latency data:" + data);
+			     if (data) {$scope.histData = data;}
                      }
                     );
             }
@@ -64,8 +65,8 @@ $scope.addSetting = function() {
 	console.log("this is a test to test if function is called");
 	//$scope.latestThroughput = $scope.setThroughput;
 	//$scope.$apply();
-    //erase histogram after changing settings
-    $scope.histData.splice(0, $scope.histData.length);
+    	//erase histogram after changing settings
+    	if ($scope.histData.length > 0) $scope.histData.splice(0, $scope.histData.length);
 	$http.post('/post/setting', {setThroughput: + $scope.setThroughput})
 		.success(
 				function (data, status, header, config) {
