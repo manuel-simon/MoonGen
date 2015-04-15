@@ -54,8 +54,8 @@ $scope.addHistData = function() {
             $http.get('/data/latency', {cache: false})
             .success(
                      function(data, status, header, config){
-                     	console.log("latency data:" + data);
-			     if (data) {$scope.histData = data;}
+                     	console.log("latency data:" + data.histo.toString());
+			     if (data) {$scope.histData = data.histo;}
                      }
                     );
             }

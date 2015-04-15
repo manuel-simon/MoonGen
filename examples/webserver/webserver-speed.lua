@@ -140,7 +140,7 @@ function latencySlave(txQueue, rxQueue, pipe)
 
 	while dpdk.running() do
 		waitTimer:reset()	
-		local stamp = math.random(1, 100) --timestamper:measureLatency()
+		local stamp = math.random(1, 10) --timestamper:measureLatency()
 		pipe:send(stamp)
 		waitTimer:busyWait()
 	end
@@ -186,6 +186,7 @@ function server(queues, throughputPipes, latencyPipe)
 
 	local LatencyHistogramHandler = class("LatencyHistogramHandler", turbo.web.RequestHandler)
 	function LatencyHistogramHandler:get()
+		self:add_header("Content-Type", "application/json")
 		local numMsgs = tonumber(latencyPipe:count())
 		local p0 = 0
 		for i=1,numMsgs do
@@ -193,16 +194,16 @@ function server(queues, throughputPipes, latencyPipe)
 			hist:update(p0)
 		end
 		hist:calc()
-		result = ""
+		result = "" 
 		for k, v in pairs(hist.histo) do
-			if result.length == 0 then
-				result = "{\n"
-			else 
-				result = result .. ",\n"
+			if string.len(result) == 0 then
+				result = '{"histo": ['
+			else
+				result = result .. ","
 			end
-			result = result .. "{x:" .. k .. ", y:" .. v .. "}"
+			result = result .. '{"x":' .. k .. ', ' ..'"y":' .. v .. '}'
 		end
-		result = result .. "}\n"
+		result = result .. "]}"
 		print(result)
 		self:write(result)
 	end
@@ -215,6 +216,7 @@ function server(queues, throughputPipes, latencyPipe)
 			for i=1, #queues do
 				rate = json.setThroughput / #queues / 84 * 64
 				queues[i]:setRate(rate)
+				hist = hist:new()
 			end
 		end
 	end
