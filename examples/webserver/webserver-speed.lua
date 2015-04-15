@@ -26,7 +26,7 @@ function master(rxPort, txPort)
 	--configure transferring device for 1 rx (0 no possible) and NUM_QUEUES+1 tx queues (latency measurement + loadgen)
 	local txDev = device.config(txPort, 1, NUM_QUEUES+1)
 	-- configure receiving device for 1 rx (latency measurement) and 1 tx queue (0 queues impossible)
-	local rxDev = device.config(rxPort, 1, 1)
+	local rxDev = device.config(rxPort, 2, 1)
 	device.waitForLinks()
 
 	--LOADGEN TASK
@@ -43,7 +43,7 @@ function master(rxPort, txPort)
 	--LATENCY MEASUREMENT TASK
 	local latencyPipe = pipe:newSlowPipe()
 	local latencyTxQueue = txDev:getTxQueue(NUM_QUEUES)
-	local latencyRxQueue = rxDev:getRxQueue(0)
+	local latencyRxQueue = rxDev:getRxQueue(1)
 	dpdk.launchLua("latencySlave", latencyTxQueue, latencyRxQueue, latencyPipe)
 
 	--WEBSERVER TASK
@@ -60,6 +60,7 @@ end
 -- start Start index of first queue to use from txQueues/pipes.
 -- fin End index of last queue to use from txQueues/pipes
 function throughputSlave(txQueues, p, start, fin)
+	
 
 	local packetLen = 64 - 4
 
@@ -88,7 +89,6 @@ function throughputSlave(txQueues, p, start, fin)
 	while dpdk.running() do
 
 		for i=start, fin do
-
 			-- allocate packets and set their size 
 			bufs[i]:alloc(packetLen)
 			for ii, buf in ipairs(bufs[i]) do 			
@@ -140,8 +140,11 @@ function latencySlave(txQueue, rxQueue, pipe)
 
 	while dpdk.running() do
 		waitTimer:reset()	
-		local stamp = math.random(1, 10) --timestamper:measureLatency()
-		pipe:send(stamp)
+		local stamp = timestamper:measureLatency()
+		if stamp ~= nil then
+			--print("stamp: " .. stamp)
+			pipe:send(stamp)
+		end
 		waitTimer:busyWait()
 	end
 
@@ -189,12 +192,13 @@ function server(queues, throughputPipes, latencyPipe)
 		self:add_header("Content-Type", "application/json")
 		local numMsgs = tonumber(latencyPipe:count())
 		local p0 = 0
+		print("numMsgs:" .. numMsgs)
 		for i=1,numMsgs do
 			p0 = latencyPipe:tryRecv(0)
 			hist:update(p0)
 		end
 		hist:calc()
-		result = "" 
+		result = ""
 		for k, v in pairs(hist.histo) do
 			if string.len(result) == 0 then
 				result = '{"histo": ['
@@ -203,9 +207,11 @@ function server(queues, throughputPipes, latencyPipe)
 			end
 			result = result .. '{"x":' .. k .. ', ' ..'"y":' .. v .. '}'
 		end
-		result = result .. "]}"
-		print(result)
-		self:write(result)
+		if string.len(result) > 0 then
+			result = result .. "]}"
+			print(result)
+			self:write(result)
+		end
 	end
 
 	local PostSettingHandler = class("PostSettingHandler", turbo.web.RequestHandler)

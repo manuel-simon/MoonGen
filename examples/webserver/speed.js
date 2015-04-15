@@ -12,20 +12,20 @@ angular.module('example', ['n3-line-chart', 'ui.slider'])
 
             
     $scope.histData = [
-    {x: 1, y: 4, otherValue: 14},
-    {x: 2, y: 8, otherValue: 1},
-    {x: 3, y: 15, otherValue: 11},
-    {x: 4, y: 16, otherValue: 147},
-    {x: 5, y: 23, otherValue: 87},
-    {x: 6, y: 42, otherValue: 45},
-    {x: 7, y: 42, otherValue: 45},
-    {x: 8, y: 42, otherValue: 45},
-    {x: 9, y: 42, otherValue: 45},
-    {x: 10, y: 42, otherValue: 45},
-    {x: 11, y: 40, otherValue: 45},
-    {x: 12, y: 38, otherValue: 45},
-    {x: 13, y: 36, otherValue: 45},
-    {x: 14, y: 36, otherValue: 45}
+    //{x: 1, y: 4, otherValue: 14},
+    //{x: 2, y: 8, otherValue: 1},
+    //{x: 3, y: 15, otherValue: 11},
+    //{x: 4, y: 16, otherValue: 147},
+    //{x: 5, y: 23, otherValue: 87},
+    //{x: 6, y: 42, otherValue: 45},
+    //{x: 7, y: 42, otherValue: 45},
+    //{x: 8, y: 42, otherValue: 45},
+    //{x: 9, y: 42, otherValue: 45},
+    //{x: 10, y: 42, otherValue: 45},
+    //{x: 11, y: 40, otherValue: 45},
+    //{x: 12, y: 38, otherValue: 45},
+    //{x: 13, y: 36, otherValue: 45},
+    //{x: 14, y: 36, otherValue: 45}
     ];
 
 $scope.addData = function() {
@@ -94,7 +94,7 @@ $scope.addSetting = function() {
             
 $scope.histOptions = {
             axes: {
-            x: {key: 'x', labelFunction: function(y) {return y;}, type: 'column', min: 0},//max: $scope.data.length, ticks: 2},
+            x: {key: 'x', labelFunction: function(y) {return y;}, type: 'column'},//max: $scope.data.length, ticks: 2},
             y: {type: 'column', min: 0},
             },
             series: [
