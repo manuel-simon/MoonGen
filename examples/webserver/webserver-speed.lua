@@ -118,15 +118,16 @@ function throughputSlave(txQueues, rxDev, p, start, fin)
 		-- print statistics
 		local time = dpdk.getTime()
 		if time - lastPrint > .1 then
-			local mpps = (totalSent - lastTotal) / (time - lastPrint)
+			local tx = (totalSent - lastTotal) / (time - lastPrint)
+			local rx = rxDev:getRxStats() * 10
 			if printcounter % 10 == 0 then
-				printf("%.5f tx:%d, rx:%d", time - lastPrint, mpps, rxDev:getRxStats())	-- packet_counter-like output
+				printf("%.5f tx:%d, rx:%d", time - lastPrint, tx, rx)	-- packet_counter-like output
 			end
 			printcounter = printcounter + 1 
 			--printf("Sent %d packets, current rate %.2f Mpps, %.2f MBit/s, %.2f MBit/s wire rate", totalSent, mpps, mpps * 64 * 8, mpps * 84 * 8)
 			lastTotal = totalSent
 			lastPrint = time
-			p:send(mpps)
+			p:send({read=rx, transfer=tx})
 		end
 
 	end
@@ -181,14 +182,15 @@ function server(queues, throughputPipes, latencyPipe)
 	local ThroughputHandler = class("ThroughputHandler", turbo.web.RequestHandler)
 	function ThroughputHandler:get()
 		p = {}
-		result = 0
+		result = {rx=0, tx=0}
 		for i=1, #throughputPipes do
 			p[i] = acceptData(throughputPipes[i], i)	
 		end
 		for i=1, #p do
-			result = result + p[i]
+			result.rx = result.rx + p[i].read
+			result.tx = result.tx + p[i].transfer
 		end
-		self:write({x=runtime, y=result})
+		self:write({x=runtime, y=result.tx, y2=result.rx})
 		runtime = runtime + 1
 	end
 
@@ -207,7 +209,7 @@ function server(queues, throughputPipes, latencyPipe)
 		histogramm = {}
 		for i=1, #hist.sortedHisto do
 			local k = math.floor(hist.sortedHisto[i].k / 1000)
-			print(hist.sortedHisto[i].k .. " k " .. k)
+			--print(hist.sortedHisto[i].k .. " k " .. k)
 			histogramm[k] = (histogramm[k] or 0) + hist.sortedHisto[i].v
 		end
 		hist2 = hist:new() 
