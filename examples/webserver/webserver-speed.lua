@@ -11,6 +11,7 @@ local memory  = require "memory"
 local ts      = require "timestamping"
 local headers = require "headers"
 local packet  = require "packet"
+local serpent = require "serpent"
 
 -- number of pipes/queues for loadgenerator
 local NUM_PIPES = 1
@@ -38,7 +39,7 @@ function master(rxPort, txPort)
 	for i=1, NUM_QUEUES do
 		throughputQueues[i] = txDev:getTxQueue(i-1)
 	end
-	dpdk.launchLua("throughputSlave", throughputQueues, throughputPipes[1], 1, 3)
+	dpdk.launchLua("throughputSlave", throughputQueues, rxDev, throughputPipes[1], 1, 3)
 	
 	--LATENCY MEASUREMENT TASK
 	local latencyPipe = pipe:newSlowPipe()
@@ -59,7 +60,8 @@ end
 -- pipes Pipes to send throughput values.
 -- start Start index of first queue to use from txQueues/pipes.
 -- fin End index of last queue to use from txQueues/pipes
-function throughputSlave(txQueues, p, start, fin)
+local printcounter = 0
+function throughputSlave(txQueues, rxDev, p, start, fin)
 	
 
 	local packetLen = 64 - 4
@@ -115,9 +117,12 @@ function throughputSlave(txQueues, p, start, fin)
 
 		-- print statistics
 		local time = dpdk.getTime()
-		if time - lastPrint > 1.0 then
+		if time - lastPrint > .1 then
 			local mpps = (totalSent - lastTotal) / (time - lastPrint)
-			printf("%.5f %d", time - lastPrint, totalSent - lastTotal)	-- packet_counter-like output
+			if printcounter % 10 == 0 then
+				printf("%.5f tx:%d, rx:%d", time - lastPrint, mpps, rxDev:getRxStats())	-- packet_counter-like output
+			end
+			printcounter = printcounter + 1 
 			--printf("Sent %d packets, current rate %.2f Mpps, %.2f MBit/s, %.2f MBit/s wire rate", totalSent, mpps, mpps * 64 * 8, mpps * 84 * 8)
 			lastTotal = totalSent
 			lastPrint = time
@@ -192,20 +197,27 @@ function server(queues, throughputPipes, latencyPipe)
 		self:add_header("Content-Type", "application/json")
 		local numMsgs = tonumber(latencyPipe:count())
 		local p0 = 0
-		print("numMsgs:" .. numMsgs)
 		for i=1,numMsgs do
 			p0 = latencyPipe:tryRecv(0)
 			hist:update(p0)
 		end
 		hist:calc()
 		result = ""
-		for k, v in pairs(hist.histo) do
+		--print(serpent.block(hist))
+		histogramm = {}
+		for i=1, #hist.sortedHisto do
+			local k = math.floor(hist.sortedHisto[i].k / 1000)
+			print(hist.sortedHisto[i].k .. " k " .. k)
+			histogramm[k] = (histogramm[k] or 0) + hist.sortedHisto[i].v
+		end
+		hist2 = hist:new() 
+		for x, y in pairs(histogramm) do
 			if string.len(result) == 0 then
 				result = '{"histo": ['
 			else
 				result = result .. ","
 			end
-			result = result .. '{"x":' .. k .. ', ' ..'"y":' .. v .. '}'
+			result = result .. '{"x":' .. x .. ', ' ..'"y":' .. y .. '}'
 		end
 		if string.len(result) > 0 then
 			result = result .. "]}"
