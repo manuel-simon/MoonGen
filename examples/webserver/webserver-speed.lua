@@ -11,7 +11,7 @@ local memory  = require "memory"
 local ts      = require "timestamping"
 local headers = require "headers"
 local packet  = require "packet"
-local serpent = require "serpent"
+--local serpent = require "serpent"
 
 -- number of pipes/queues for loadgenerator
 local NUM_PIPES = 1
@@ -40,7 +40,7 @@ function master(rxPort, txPort)
 		throughputQueues[i] = txDev:getTxQueue(i-1)
 	end
 	dpdk.launchLua("throughputSlave", throughputQueues, rxDev, throughputPipes[1], 1, 3)
-	
+
 	--LATENCY MEASUREMENT TASK
 	local latencyPipe = pipe:newSlowPipe()
 	local latencyTxQueue = txDev:getTxQueue(NUM_QUEUES)
