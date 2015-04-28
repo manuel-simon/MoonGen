@@ -27,8 +27,14 @@ $scope.addData = function() {
 				$scope.options.axes.x.max = $scope.data[$scope.data.length-1].x;
 				$scope.latestLatency = data.y;
 				$scope.lengthOfCableInMAvg = ($scope.speedOfLightInMPerSInCopper / 1000 / 1000 / 1000) * ($scope.latestLatency-$scope.averageModulationTimeInNs);
-				$scope.lengthOfCableInMMin = (($scope.speedOfLightInMPerSInCopper+$scope.speedOfLightInMPerSInCopperUncertainty) / 1000 / 1000 / 1000) * ($scope.latestLatency-($scope.averageModulationTimeInNs+$scope.averageModulationTimeInNsUncertainty));
-				$scope.lengthOfCableInMMax = (($scope.speedOfLightInMPerSInCopper-$scope.speedOfLightInMPerSInCopperUncertainty) / 1000 / 1000 / 1000) * ($scope.latestLatency-($scope.averageModulationTimeInNs-$scope.averageModulationTimeInNsUncertainty));
+				$scope.lengthOfCableInMMax = (($scope.speedOfLightInMPerSInCopper+$scope.speedOfLightInMPerSInCopperUncertainty) / 1000 / 1000 / 1000) * ($scope.latestLatency-($scope.averageModulationTimeInNs-$scope.averageModulationTimeInNsUncertainty));
+				$scope.lengthOfCableInMMin = (($scope.speedOfLightInMPerSInCopper-$scope.speedOfLightInMPerSInCopperUncertainty) / 1000 / 1000 / 1000) * ($scope.latestLatency-($scope.averageModulationTimeInNs+$scope.averageModulationTimeInNsUncertainty));
+				console.log($scope.speedOfLightInMPerSInCopper);
+				console.log($scope.speedOfLightInMPerSInCopperUncertainty);
+				console.log($scope.latestLatency);
+				console.log($scope.averageModulationTimeInNs);
+				console.log($scope.averageModulationTimeInNsUncertainty);
+				console.log("------------------------");
 				$scope.lengthOfCableInFeetMin = $scope.lengthOfCableInMMin * $scope.mToFeetFactor;
 				$scope.lengthOfCableInFeetAvg = $scope.lengthOfCableInMAvg * $scope.mToFeetFactor;
 				$scope.lengthOfCableInFeetMax = $scope.lengthOfCableInMMax * $scope.mToFeetFactor;
