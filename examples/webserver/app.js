@@ -51,7 +51,7 @@ $scope.options = {
 	y: {type: 'linear', min: 0},
 },
 	series: [
-{y: 'y', color: 'steelblue', thickness: '2px', type: 'area', striped: false, label: 'Average Latency'}
+{y: 'y', color: 'steelblue', thickness: '2px', type: 'area', striped: false, label: 'Latency'}
 //,{y: 'otherValue', axis: 'y2', color: 'lightsteelblue', visible: false, drawDots: true, dotSize: 2}
 ],
 	lineMode: 'linear',

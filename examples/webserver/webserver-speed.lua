@@ -15,7 +15,7 @@ local packet  = require "packet"
 
 -- number of pipes/queues for loadgenerator
 local NUM_PIPES = 1
-local NUM_QUEUES = 3 
+local NUM_QUEUES = 4 
 
 -- Initialize load generator, latency measurement and webserver.
 -- rxPort Port where to accept timestamped packets
@@ -39,7 +39,7 @@ function master(rxPort, txPort)
 	for i=1, NUM_QUEUES do
 		throughputQueues[i] = txDev:getTxQueue(i-1)
 	end
-	dpdk.launchLua("throughputSlave", throughputQueues, rxDev, throughputPipes[1], 1, 3)
+	dpdk.launchLua("throughputSlave", throughputQueues, rxDev, throughputPipes[1], 1, 4)
 
 	--LATENCY MEASUREMENT TASK
 	local latencyPipe = pipe:newSlowPipe()
@@ -187,8 +187,12 @@ function server(queues, throughputPipes, latencyPipe)
 			p[i] = acceptData(throughputPipes[i], i)	
 		end
 		for i=1, #p do
-			result.rx = result.rx + p[i].read
-			result.tx = result.tx + p[i].transfer
+			if p[i] ~= nil then
+				print(result.rx)
+				print(p[i].read)
+				result.rx = result.rx + p[i].read
+				result.tx = result.tx + p[i].transfer
+			end
 		end
 		self:write({x=runtime, y=result.tx, y2=result.rx})
 		runtime = runtime + 1

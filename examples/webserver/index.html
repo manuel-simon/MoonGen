@@ -12,7 +12,7 @@
 
 			<div ng-controller='ExampleCtrl'>
 				<div id="chart">
-					<h3>Average Latency</h3>
+					<h3>Latency</h3>
 					<linechart data="data" options="options"></linechart>
 					<!--
 					<button ng-click="addData()">Add Data</button>
@@ -23,7 +23,7 @@
 					<h3>Calculation of cable length</h3>
 					<table>
 						<tr><td style="font-weight: bold;">Measured values:</td><td></td><td></td></tr>
-						<tr><td>Latest average latency:</td><td style="text-align: right;">{{latestLatency.toFixed(0)}}</td><td>ns</td></tr>
+						<tr><td>Latest latency:</td><td style="text-align: right;">{{latestLatency.toFixed(0)}}</td><td>ns</td></tr>
 
 						<tr><td style="font-weight: bold;padding-top:1em">Constants:</td><td></td><td></td></tr>
 						<tr><td>X540 modulation time:</td><td style="text-align: right;">{{averageModulationTimeInNs.toFixed(0)}} &plusmn; {{averageModulationTimeInNsUncertainty}}</td><td>ns</td></tr>
@@ -33,8 +33,8 @@
 						<tr><td>Speed of Light in Copper:</td><td style="text-align: right;">{{copperFactor}} &plusmn; {{copperFactorUncertainty}}</td><td>c</td></tr>
 
 						<tr><td style="font-weight: bold;padding-top:1em;">Calculated values:</td><td></td><td></td></tr>
-						<tr><td>Length of cable [min, max]:</td><td  style="text-align: right;">[{{lengthOfCableInMMin.toFixed(1)}}, {{lengthOfCableInMMax.toFixed(1)}}]</td><td>m</td></tr>
-						<tr><td>Length of cable [min, max]:</td><td  style="text-align: right;">[{{lengthOfCableInFeetMin.toFixed(1)}}, {{lengthOfCableInFeetMax.toFixed(1)}}]</td><td>ft</td></tr>
+						<tr><td>Length of cable:</td><td  style="text-align: right;">{{lengthOfCableInMAvg.toFixed(1)}} &plusmn; {{(lengthOfCableInMMax - lengthOfCableInMMin).toFixed(1)}}</td><td>m</td></tr>
+						<tr><td>Length of cable:</td><td  style="text-align: right;">{{lengthOfCableInFeetAvg.toFixed(1)}} &plusmn; {{(lengthOfCableInFeetMax - lengthOfCableInFeetMin).toFixed(1)}}</td><td>ft</td></tr>
 					</table>
 				</div>
 			</div>
