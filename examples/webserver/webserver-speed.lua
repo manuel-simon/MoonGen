@@ -39,7 +39,7 @@ function master(rxPort, txPort)
 	for i=1, NUM_QUEUES do
 		throughputQueues[i] = txDev:getTxQueue(i-1)
 	end
-	dpdk.launchLua("throughputSlave", throughputQueues, rxDev, throughputPipes[1], 1, 4)
+	dpdk.launchLua("throughputSlave", throughputQueues, txDev, rxDev, throughputPipes[1], 1, 4)
 
 	--LATENCY MEASUREMENT TASK
 	local latencyPipe = pipe:newSlowPipe()
@@ -61,7 +61,7 @@ end
 -- start Start index of first queue to use from txQueues/pipes.
 -- fin End index of last queue to use from txQueues/pipes
 local printcounter = 0
-function throughputSlave(txQueues, rxDev, p, start, fin)
+function throughputSlave(txQueues, txDev, rxDev, p, start, fin)
 	
 
 	local packetLen = 64 - 4
@@ -118,7 +118,7 @@ function throughputSlave(txQueues, rxDev, p, start, fin)
 		-- print statistics
 		local time = dpdk.getTime()
 		if time - lastPrint > .1 then
-			local tx = (totalSent - lastTotal) / (time - lastPrint)
+			local tx = txDev:getTxStats() * 10 --(totalSent - lastTotal) / (time - lastPrint)
 			local rx = rxDev:getRxStats() * 10
 			if printcounter % 10 == 0 then
 				printf("%.5f tx:%d, rx:%d", time - lastPrint, tx, rx)	-- packet_counter-like output
