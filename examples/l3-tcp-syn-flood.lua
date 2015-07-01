@@ -1,14 +1,8 @@
-local dpdk	= require "dpdk"
+local dpdk		= require "dpdk"
 local memory	= require "memory"
 local device	= require "device"
-local ts	= require "timestamping"
-local dpdkc	= require "dpdkc"
-local filter	= require "filter"
-local utils 	= require "utils"
-local headers	= require "headers"
-local packet	= require "packet"
+local stats		= require "stats"
 
-local ffi	= require "ffi"
 
 function master(...)
 	local txPort = tonumber((select(1, ...)))
@@ -31,23 +25,23 @@ end
 
 function loadSlave(port, queue, minA, numIPs)
 	--- parse and check ip addresses
-	-- min TCP packet size for IPv6 is 78 bytes
-	-- 4 bytes subtracted as the CRC gets appended by the NIC
-	local packetLen = 78 - 4
 
 	local minIP, ipv4 = parseIPAddress(minA)
 	if minIP then
-		printf("INFO: Detected in %s address.", minIP and "IPv4" or "IPv6")
+		printf("INFO: Detected an %s address.", minIP and "IPv4" or "IPv6")
 	else
-		errorf("Invalid minIP: %s", minA)
+		errorf("ERROR: Invalid minIP: %s", minA)
 	end
+
+	-- min TCP packet size for IPv6 is 74 bytes (+ CRC)
+	local packetLen = ipv4 and 60 or 74
 	
 	--continue normally
 	local queue = device.get(port):getTxQueue(queue)
 	local mem = memory.createMemPool(function(buf)
 		buf:getTcpPacket(ipv4):fill{ 
 			ethSrc="90:e2:ba:2c:cb:02", ethDst="90:e2:ba:35:b5:81", 
-			ipDst="192.168.1.1", 
+			ip4Dst="192.168.1.1", 
 			ip6Dst="fd06::1",
 			tcpSyn=1,
 			tcpSeqNumber=1,
@@ -63,7 +57,7 @@ function loadSlave(port, queue, minA, numIPs)
 	local counter = 0
 	local c = 0
 
-	print("Start sending...")
+	local txStats = stats:newDevTxCounter(queue, "plain")
 	while dpdk.running() do
 		-- faill packets and set their size 
 		bufs:alloc(packetLen)
@@ -71,13 +65,14 @@ function loadSlave(port, queue, minA, numIPs)
 			local pkt = buf:getTcpPacket(ipv4)
 			
 			--increment IP
-			pkt.ip.src:set(minIP)
-			pkt.ip.src:add(counter)
-			if numIPs <= 32 then
-				counter = (counter + 1) % numIPs
-			else 
-				counter = counter == numIPs and 0 or counter + 1
+			if ipv4 then
+				pkt.ip4.src:set(minIP)
+				pkt.ip4.src:add(counter)
+			else
+				pkt.ip6.src:set(minIP)
+				pkt.ip6.src:add(counter)
 			end
+			counter = incAndWrap(counter, numIPs)
 
 			-- dump first 3 packets
 			if c < 3 then
@@ -89,16 +84,9 @@ function loadSlave(port, queue, minA, numIPs)
 		bufs:offloadTcpChecksums(ipv4)
 		
 		totalSent = totalSent + queue:send(bufs)
-		local time = dpdk.getTime()
-		if time - lastPrint > 0.1 then 	--counter frequency
-			local mpps = (totalSent - lastTotal) / (time - lastPrint) / 10^6
-			--printf("%.5f %d", time - lastPrint, totalSent - lastTotal)	-- packet_counter-like output
-			printf("Sent %d packets, current rate %.2f Mpps, %.2f MBit/s, %.2f MBit/s wire rate", totalSent, mpps, mpps * 64 * 8, mpps * 84 * 8)
-			lastTotal = totalSent
-			lastPrint = time
-		end
+		txStats:update()
 	end
-	printf("Sent %d packets", totalSent)
+	txStats:finalize()
 end
 
 

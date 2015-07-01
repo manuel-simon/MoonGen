@@ -1,7 +1,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
-SET(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-unused-parameter -g -O2 -std=gnu++11 -march=native -msse4.2 -I${CMAKE_CURRENT_SOURCE_DIR}/src")
-SET(CMAKE_C_FLAGS "-Wall -Wextra -Wno-unused-parameter -g -O2 -std=gnu99 -march=native -msse4.2")
+SET(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-unused-parameter -g -O3 -std=gnu++11 -march=native -msse4.2 -I${CMAKE_CURRENT_SOURCE_DIR}/src")
+SET(CMAKE_C_FLAGS "-Wall -Wextra -Wno-unused-parameter -g -O3 -std=gnu99 -march=native -msse4.2")
 SET(CMAKE_EXE_LINKER_FLAGS "-rdynamic") # to access functions from luajit
 
 SET(PRJ MoonGen)
@@ -14,8 +14,16 @@ SET(FILES
 	src/util.c
 	src/lifecycle.c
 	src/timestamping.c
+  src/debug.c
+  src/bitmask.c
+  src/lpm_l.c
+  src/5tuple.c
+  src/distribute.c
+  src/barrier.cpp
 	src/task-results.cpp
 	src/pipe.cpp
+	src/lock.cpp
+	src/namespaces.cpp
 )
 
 SET(DPDK_LIBS
@@ -38,6 +46,7 @@ SET(ALL_LIBS
 INCLUDE_DIRECTORIES(
 	 ${CMAKE_CURRENT_SOURCE_DIR}/deps/dpdk/x86_64-native-linuxapp-gcc/include
 	 ${CMAKE_CURRENT_SOURCE_DIR}/deps/dpdk/lib/librte_pmd_ixgbe/ixgbe
+	 ${CMAKE_CURRENT_SOURCE_DIR}/deps/dpdk/lib/librte_pmd_ixgbe
 	 ${CMAKE_CURRENT_SOURCE_DIR}/deps/luajit/src
 	 ${CMAKE_CURRENT_SOURCE_DIR}/lib
 )

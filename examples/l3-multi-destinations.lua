@@ -46,7 +46,7 @@ function loadSlave(dev, queue, minA, numIPs)
 	local mem = memory.createMemPool(function(buf)
 		local pkt = buf:getUdpPacket(ipv4):fill{ 
 			ethSrc="90:e2:ba:2c:cb:02", ethDst="90:e2:ba:35:b5:81", 
-			ipSrc="192.168.1.1", 
+			ip4Src="192.168.1.1", 
 			ip6Src="fd06::1",
 			-- the destination address will be set for each packet individually (see below)
 			pktLength=packetLen 
@@ -69,13 +69,14 @@ function loadSlave(dev, queue, minA, numIPs)
 			local pkt = buf:getUdpPacket(ipv4)
 			
 			-- increment IP
-			pkt.ip:setDst(minIP)
-			pkt.ip.dst:add(counter)
-			if numIPs <= 32 then
-				counter = (counter + 1) % numIPs
-			else 
-				counter = counter == numIPs and 0 or counter + 1
+			if ipv4 then
+				pkt.ip4:setDst(minIP)
+				pkt.ip4.dst:add(counter)
+			else
+				pkt.ip6:setDst(minIP)
+				pkt.ip6.dst:add(counter)
 			end
+			counter = incAndWrap(counter, numIPs)
 
 			-- dump first few packets to see what we send
 			if c < 3 then

@@ -126,6 +126,15 @@ ffi.cdef[[
 		uint64_t olbbytes;
 		/**< Total number of good bytes transmitted to loopback,VF Only */
 	};
+
+  struct mg_rss_hash_mask{
+    uint8_t ipv4 :1;
+    uint8_t tcp_ipv4 :1;
+    uint8_t udp_ipv4 :1;
+    uint8_t ipv6 :1;
+    uint8_t tcp_ipv6 :1;
+    uint8_t udp_ipv6 :1;
+  };
 ]]
 
 -- dpdk functions and wrappers
@@ -141,8 +150,9 @@ ffi.cdef[[
 	uint32_t get_current_socket();
 
 	// memory
-	struct mempool* init_mem(uint32_t nb_mbuf, int32_t sock, uint32_t mbuf_size);
+	struct mempool* init_mem(uint32_t nb_mbuf, uint32_t sock, uint32_t mbuf_size);
 	struct rte_mbuf* alloc_mbuf(struct mempool* mp);
+	void alloc_mbufs(struct mempool* mp, struct rte_mbuf* bufs[], uint32_t len, uint16_t pkt_len);
 	void rte_pktmbuf_free_export(struct rte_mbuf* m);
 	uint16_t rte_mbuf_refcnt_read_export(struct rte_mbuf* m);
 	uint16_t rte_mbuf_refcnt_update_export(struct rte_mbuf* m, int16_t value);
@@ -154,12 +164,13 @@ ffi.cdef[[
 	uint64_t get_mac_addr(int port, char* buf);
 	void rte_eth_link_get(uint8_t port, struct rte_eth_link* link);
 	void rte_eth_link_get_nowait(uint8_t port, struct rte_eth_link* link);
-	int configure_device(int port, int rx_queues, int tx_queues, int rx_descs, int tx_descs, struct mempool* mempool);
+	//int configure_device(int port, int rx_queues, int tx_queues, int rx_descs, int tx_descs, uint16_t link_speed, struct mempool* mempool, bool drop_en);
+  int configure_device(int port, int rx_queues, int tx_queues, int rx_descs, int tx_descs, uint16_t link_speed, struct mempool* mempool, bool drop_en, uint8_t rss_enable, struct mg_rss_hash_mask * hash_functions);
 	void get_mac_addr(int port, char* buf);
 	uint32_t get_pci_id(uint8_t port);
 	uint32_t read_reg32(uint8_t port, uint32_t reg);
 	void write_reg32(uint8_t port, uint32_t reg, uint32_t val);
-	void sync_clocks(uint8_t port1, uint8_t port2);
+	void sync_clocks(uint8_t port1, uint8_t port2, uint32_t timl, uint32_t timh, uint32_t adjl, uint32_t adjh);
 	int32_t get_clock_difference(uint8_t port1, uint8_t port2);
 	uint8_t get_socket(uint8_t port);
 	void rte_eth_promiscuous_enable(uint8_t port);
@@ -168,6 +179,8 @@ ffi.cdef[[
 	// rx & tx
 	uint16_t rte_eth_rx_burst_export(uint8_t port_id, uint16_t queue_id, struct rte_mbuf** rx_pkts, uint16_t nb_pkts);
 	uint16_t rte_eth_tx_burst_export(uint8_t port_id, uint16_t queue_id, struct rte_mbuf** tx_pkts, uint16_t nb_pkts);
+	int rte_eth_dev_tx_queue_start(uint8_t port_id, uint16_t rx_queue_id);
+	int rte_eth_dev_tx_queue_stop(uint8_t port_id, uint16_t rx_queue_id);
 	void send_all_packets(uint8_t port_id, uint16_t queue_id, struct rte_mbuf** pkts, uint16_t num_pkts);
 	void send_all_packets_with_delay_invalid_size(uint8_t port_id, uint16_t queue_id, struct rte_mbuf** load_pkts, uint16_t num_pkts, struct mempool* pool);
 	void send_all_packets_with_delay_bad_crc(uint8_t port_id, uint16_t queue_id, struct rte_mbuf** load_pkts, uint16_t num_pkts, struct mempool* pool);
