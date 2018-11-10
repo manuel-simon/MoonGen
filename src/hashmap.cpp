@@ -92,23 +92,29 @@ using namespace hash_map;
     bool hmapk##key_size##v##value_size##_find(hmapk##key_size##v##value_size* map, hmapk##key_size##v##value_size::accessor* a, const void* key) { \
         return map->find(*a, *static_cast<const K<key_size>*>(key)); \
     } \
+    std::deque<hash_map::key_buf<key_size>> my_deque##key_size##v##value_size ; \
     uint32_t hmapk##key_size##v##value_size##_clean(hmapk##key_size##v##value_size* map, uint64_t thresh) { \
-    int ctr = 0; \
-        std::deque<hash_map::key_buf<key_size>> deque; \
+        uint32_t ctr = 0; \
         for (hmapk##key_size##v##value_size::iterator it = map->begin(); it != map->end();) { \
             uint64_t ts = *reinterpret_cast<uint64_t *>( &(*it).second); \
             if(ts  < thresh) { \
-                deque.push_front(it->first); \
+                my_deque##key_size##v##value_size.push_front(it->first); \
             } \
-            it++; \
-            for(auto it = deque.begin(); it != deque.end(); it++) { \
-                map->erase(*it); \
-        ++ctr; \
-            } \
+            ++it; \
         } \
-        deque.clear(); \
-    return ctr; \
+        for(auto it = my_deque##key_size##v##value_size.begin(); it != my_deque##key_size##v##value_size.end(); ++it) { \
+            map->erase(*it); \
+	    ++ctr; \
+        } \
+        return ctr; \
+    } \
+    uint32_t hmapk##key_size##v##value_size##_clean_size() { \
+        return my_deque##key_size##v##value_size.size(); \
+    } \
+    void hmapk##key_size##v##value_size##_clean_clear() { \
+        my_deque##key_size##v##value_size.clear(); \
     }
+
 
 #define MAP_VALUES(value_size) \
     MAP_IMPL(8, value_size) \
