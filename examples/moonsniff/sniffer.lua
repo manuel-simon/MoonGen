@@ -107,9 +107,9 @@ function timestamp(queue, otherdev, bar, pre, args)
 		local writer
 		if pre then
 			-- set the relative starting timestamp to 0
-			writer = pcap:newWriter(args.output .. "-pre.pcap", 0)
+			writer = pcap:newWriter(args.output .. "-pre.pcap", 0, true)
 		else
-			writer = pcap:newWriter(args.output .. "-post.pcap", 0)
+			writer = pcap:newWriter(args.output .. "-post.pcap", 0, true)
 		end
 
 		bar:wait()
