@@ -35,8 +35,8 @@ local mempool0 = nil
 local mempool1 = nil
 local next_mempool = 0 -- used to switch between mempool 0 and mempool 1
 
-local TABLE_TARGET_SIZE = 100000 -- approximate size for the used table
-local TABLE_THRESH_SIZE = 10000 -- if table size exceeds target size + thresh size the table will be searched for
+local TABLE_TARGET_SIZE = 10000 -- approximate size for the used table
+local TABLE_THRESH_SIZE = 1000 -- if table size exceeds target size + thresh size the table will be searched for
                                -- leftover entries which can be deleted
 -- this value is dynamically increased during runtime
 local DELETION_THRESH = 1e9 -- delete entries only if their timestamp is this value of nanoseconds older
@@ -220,9 +220,6 @@ function getKeyVal(cap, misses, keyBuf, tsBuf, lastHit, tableSize)
 
 		pre_ts = ffi.cast(UINT64_P, pre_ts)
 
-		local thishit = ffi.cast(INT64_T, pre_ts[0])
-		lastHit = thishit
-
 		local diff = ffi.cast(INT64_T, post_ts[0] - pre_ts[0])
 
 		if diff < TIME_THRESH then
@@ -280,6 +277,7 @@ function tbbCore(args, PRE, POST)
 		packets = packets + 1
 	end
 
+
 	local postcap = readSingle(postreader)
 	local misses = 0
 	local trash = 0
@@ -309,12 +307,7 @@ function tbbCore(args, PRE, POST)
 
 		packets = packets + 1
 	end
-        log:info("Cleaning: ")
-        local thres = lastHit * DELETION_THRESH
-        local cleaned = tbbmap:clean(thres)
-        print('cleaned: ' ..  cleaned)
-        print(tbbmap:clean_size())
-        tbbmap:clean_clear()
+
 
 	prereader:close()
 	postreader:close()
@@ -339,19 +332,14 @@ end
 -- @param lastHist, the timestamp of the last successful matching operation
 -- @param tableSize, the current number of entries in the table
 function checkClean(lastHit, tableSize)
-	--print('checkClean lastHit ' ..  tostring(lastHit))
 	if tableSize > TABLE_TARGET_SIZE + TABLE_THRESH_SIZE then
 		log:info("Cleaning: ")
-		local thres = lastHit - DELETION_THRESH
-		local cleaned = tbbmap:clean(thres)
-		print('cleaned: ' ..  cleaned)
-		print(tbbmap:clean_size())
-		tbbmap:clean_clear()
+		local cleaned = tbbmap:clean(math.max(lastHit - DELETION_THRESH, 0))
 		tableSize = tableSize - cleaned
 		log:info("Finished cleaning")
-		--if cleaned == 0 then
-		--	TABLE_THRESH_SIZE = TABLE_THRESH_SIZE * 1.4
-		--end
+		if cleaned == 0 then
+			TABLE_THRESH_SIZE = TABLE_THRESH_SIZE * 1.4
+		end
 	end
 	return tableSize
 end
