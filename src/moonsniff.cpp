@@ -173,7 +173,7 @@ namespace moonsniff {
 
 	bool useNanosecondTimestamps = true;
 
-	void pcap_log_pkts(uint8_t port_id, uint16_t queue_id, struct rte_mbuf** rx_pkts, uint16_t nb_pkts, uint32_t runtime, const char* filename, uint32_t snap_len) {
+	void pcap_log_pkts(uint8_t port_id, uint16_t queue_id, struct rte_mbuf** rx_pkts, uint16_t nb_pkts, uint32_t runtime, const char* filename, uint32_t snap_len, uint32_t max_packets) {
 		int fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, 0666);
 		if (!fd) {
 			std::cerr << "open failed" << std::endl;
@@ -209,9 +209,12 @@ namespace moonsniff {
 		memcpy(addr, &hdr, sizeof(pcap_hdr_t));
 		offset += sizeof(pcap_hdr_t);
 
-		while (libmoon::is_running(0) && std::difftime(std::time(nullptr), starttime) < runtime) {
-			uint16_t rx = rte_eth_rx_burst(port_id, queue_id, rx_pkts, nb_pkts);
+		uint32_t counter = 0;
+		bool max_packets_given = max_packets > 0;
 
+		while (libmoon::is_running(0) && std::difftime(std::time(nullptr), starttime) < runtime && (!max_packets_given || counter < max_packets)) {
+			uint16_t rx = rte_eth_rx_burst(port_id, queue_id, rx_pkts, nb_pkts);
+			counter += rx;
 			for (int i = 0; i < rx; i++) {
 				if ((rx_pkts[i]->ol_flags | PKT_RX_IEEE1588_TMST) != 0) {
 					uint32_t incl_len = (rx_pkts[i]->pkt_len - 8 < snap_len) ? rx_pkts[i]->pkt_len - 8 : snap_len;
@@ -271,8 +274,8 @@ extern "C" {
 		moonsniff::ms_log_pkts(port_id, queue_id, rx_pkts, nb_pkts, seqnum_offset, filename);
 	}
 
-	void pcap_log_pkts(uint8_t port_id, uint16_t queue_id, struct rte_mbuf** rx_pkts, uint16_t nb_pkts, uint32_t runtime, const char* filename, uint32_t snap_len) {
-		moonsniff::pcap_log_pkts(port_id, queue_id, rx_pkts, nb_pkts, runtime, filename, snap_len);
+	void pcap_log_pkts(uint8_t port_id, uint16_t queue_id, struct rte_mbuf** rx_pkts, uint16_t nb_pkts, uint32_t runtime, const char* filename, uint32_t snap_len, uint32_t max_packets) {
+		moonsniff::pcap_log_pkts(port_id, queue_id, rx_pkts, nb_pkts, runtime, filename, snap_len, max_packets);
 	}
 
 }

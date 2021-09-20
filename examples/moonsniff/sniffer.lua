@@ -24,13 +24,14 @@ function configure(parser)
 	parser:description("Demonstrate and test hardware latency induced by a device under test.\nThe ideal test setup is to use 2 taps, one should be connected to the ingress cable, the other one to the egress one.\n\n For more detailed information on possible setups and usage of this script have a look at moonsniff.md.")
 	parser:argument("dev", "devices to use."):args(2):convert(tonumber)
 	parser:option("-o --output", "Path to output file."):args(1):default("latencies")
-	parser:option("-t --time", "Sets the length of the measurement period in seconds."):args(1):convert(tonumber):default(10)
+	parser:option("-t --time", "Sets the length of the measurement period in seconds."):args(1):convert(tonumber):default(60)
 	parser:option("--seq-offset", "Offset of the sequence number in bytes."):args(1):convert(tonumber)
 	parser:flag("-l --live", "Do some live processing during packet capture. Lower performance than standard mode.")
 	parser:flag("-f --fast", "Set fast flag to reduce the amount of live processing for higher performance. Only has effect if live flag is also set")
 	parser:flag("-c --capture", "If set, all incoming packets are captured as a whole.")
 	parser:option("-s --snaplen", "Maximum capture length of recorded packets (default size 64 B)."):args(1):convert(tonumber):default(64)
 	parser:flag("-d --debug", "Insted of reading real input, some fake input is generated and written to the output files.")
+	parser:flag("-p --packets", "If specified, the capturing will stop after the given amount of packets (accuracy of 1k) have been processed or the specified time ends, whatever happens first"):args(1):convert(tonumber):default(0)
 	return parser:parse()
 end
 
@@ -168,13 +169,16 @@ function core_offline(queue, bufs, filename, args)
 end
 
 function core_capture_c(queue, bufs, filename, args)
-	C.pcap_log_pkts(queue.id, queue.qid, bufs.array, bufs.size, args.time, filename, args.snaplen)
+	C.pcap_log_pkts(queue.id, queue.qid, bufs.array, bufs.size, args.time, filename, args.snaplen, args.packets)
 end
 
 function core_capture(queue, bufs, writer, args)
 	local runtime = timer:new(args.time + 0.5)
+	local max_packets = args.packets or 0
+	local counter = 0
+	local max_packets_given = max_packets > 0
 
-	while lm.running() and runtime:running() do
+	while lm.running() and runtime:running() and (not max_packets_given or counter < max_packets) do
 		local rx = queue:tryRecv(bufs, 1000)
 		for i = 1, rx do
 			local timestamp = bufs[i]:getTimestamp(queue.dev)
@@ -189,6 +193,7 @@ function core_capture(queue, bufs, writer, args)
 				writer:writeBuf(timestamp, bufs[i], args.snaplen)
 			end
 		end
+		counter = counter + rx
 		bufs:free(rx)
 	end
 end
